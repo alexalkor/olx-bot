@@ -35,9 +35,10 @@ OLX Free Stuff Scrapper          Cloudflare Worker                 GitHub
                                                            picker, offer delivery)
 ```
 
-1. The scraper (a local scheduled task, not part of this repo) scrapes OLX,
-   filters for free listings, and `POST`s them to the Cloudflare Worker
-   `olx-free-stuff-worker`.
+1. The scraper (a local scheduled task, not part of this repo — stays local
+   because OLX blocks cloud/datacenter traffic, see "Freshness watchdog"
+   below) scrapes OLX, filters for free listings, and `POST`s them to the
+   Cloudflare Worker `olx-free-stuff-worker`.
 2. The Worker stores the payload in Workers KV under key `"latest"`, then
    backs it up to this repo as `data/offers.json` via the GitHub Contents API.
 3. Telegram users message the bot; the Worker receives updates via webhook
@@ -62,6 +63,7 @@ day-to-day changes; just push to `main`.
 | `POST` | `/webhook` | Telegram webhook target. Auth: header `X-Telegram-Bot-Api-Secret-Token` must match `WEBHOOK_SECRET`. |
 | `GET` | `/admin/set-webhook` | One-time setup: registers this Worker's `/webhook` URL with Telegram. Auth: `?secret=<WEBHOOK_SECRET>` query param. |
 | `GET` | `/admin/webhook-info` | Proxies Telegram's `getWebhookInfo`, for debugging delivery. Auth: `?secret=<WEBHOOK_SECRET>` query param. |
+| `POST` | `/admin/alert` | Body: `{"message": "..."}`, header `X-Secret: <WEBHOOK_SECRET>`. Sends `message` to `ADMIN_CHAT_ID` via Telegram. Used by the cloud freshness-watchdog scheduled task (see below) to notify the admin when the scraper hasn't posted in a while. |
 
 Required Cloudflare configuration (Settings → Variables/Bindings on
 `olx-free-stuff-worker`; bindings/vars live in [`wrangler.toml`](wrangler.toml),
@@ -76,6 +78,10 @@ secrets are set via the dashboard and are **not** committed):
 - `GITHUB_PAT` — fine-grained PAT scoped to this repo, `Contents: Read and write`
   (secret, dashboard-only)
 - `BOT_TOKEN` — Telegram bot token from @BotFather (secret, dashboard-only)
+- `ADMIN_CHAT_ID` — Telegram chat ID (your own chat with the bot) that
+  `/admin/alert` sends watchdog notifications to (dashboard variable,
+  not committed — a numeric Telegram ID isn't a secret per se, but it's
+  personal, so it's kept out of the repo like the other dashboard vars)
 
 One-time setup after `BOT_TOKEN` is added: visit
 `https://<worker-subdomain>/admin/set-webhook?secret=<WEBHOOK_SECRET>` once
@@ -84,6 +90,22 @@ in a browser to register the Telegram webhook.
 No cron trigger is configured on the Worker — the scraper ingest side only
 runs when the scraper's scheduled task `POST`s to it; the Telegram side only
 runs when Telegram delivers a webhook update.
+
+## Freshness watchdog (Claude Code scheduled task, cloud-only)
+
+The scraper itself (see below) has to run somewhere that OLX's anti-bot
+protection will let through — it blocks plain requests from cloud/datacenter
+IPs, so the scrape step still has to run as a local scheduled task on a real
+machine, same as before. There's no way around that without impersonating a
+browser to defeat the anti-bot check, which this project doesn't do.
+
+What *can* run fully in the cloud, with no PC involved, is a watchdog: a
+Claude Code scheduled task that periodically calls `GET /offers`, checks how
+old `timestamp` is, and if the local scraper hasn't posted within the
+expected window, calls `POST /admin/alert` so the admin gets a Telegram
+ping. It only reads public worker endpoints, so it needs no secrets of its
+own — `X-Secret` for `/admin/alert` is supplied by the Claude Code
+environment's stored network credential for this worker.
 
 ## `data/offers.json` format (current, live)
 

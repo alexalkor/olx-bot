@@ -1,0 +1,13 @@
+{
+  "name": "olx-free-stuff-worker",
+  "private": true,
+  "description": "Cloudflare Worker: scrapes OLX free listings backup + Telegram bot webhook",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.158.0"
+  }
+}

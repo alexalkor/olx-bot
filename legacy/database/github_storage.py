@@ -8,7 +8,7 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 
-REPO      = os.getenv("GITHUB_REPO", "alexalkor/olx-free-stuff-bot")
+REPO      = os.getenv("GITHUB_REPO", "alexalkor/olx-bot")
 JSON_PATH = "data/offers.json"   # raw text + all translations
 API_BASE  = "https://api.github.com"
 

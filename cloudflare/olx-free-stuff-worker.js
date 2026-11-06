@@ -12,7 +12,7 @@
 //     - KV namespace binding named OFFERS_KV (already exists — also stores
 //       each chat's language preference under key "lang:<chatId>")
 //   Variables (Settings > Variables):
-//     - GITHUB_REPO = "alexalkor/olx-free-stuff-bot"        (plain text var)
+//     - GITHUB_REPO = "alexalkor/olx-bot"                    (plain text var)
 //     - GITHUB_FILE = "data/offers.json"                     (plain text var)
 //   Secrets (Settings > Variables > "Encrypt" / Secrets):
 //     - WEBHOOK_SECRET = <shared secret>. Used three ways:
@@ -21,7 +21,7 @@
 //            (Telegram echoes it back as header X-Telegram-Bot-Api-Secret-Token)
 //         3. the ?secret= query param that gates the /admin/* endpoints below
 //     - GITHUB_PAT      = <GitHub PAT, fine-grained, Contents: Read/write,
-//                          scoped to only olx-free-stuff-bot>
+//                          scoped to only olx-bot>
 //     - BOT_TOKEN       = <Telegram bot token from @BotFather for the OLX
 //                          bot. NEW — required for any Telegram functionality.
 //                          Nothing works without this being set.>
@@ -74,7 +74,7 @@ function escapeHtml(str) {
 }
 
 async function githubBackup(env, contentObj) {
-  const repo = env.GITHUB_REPO || "alexalkor/olx-free-stuff-bot";
+  const repo = env.GITHUB_REPO || "alexalkor/olx-bot";
   const path = env.GITHUB_FILE || "data/offers.json";
   const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
   const headers = {

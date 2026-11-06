@@ -14,4 +14,4 @@ ADMIN_USER_ID: int = int(os.getenv("ADMIN_USER_ID", "0"))
 
 GITHUB_PAT: str     = os.getenv("GITHUB_PAT", "")
 MYMEMORY_EMAIL: str = os.getenv("MYMEMORY_EMAIL", "bot@olxfreestuff.local")
-GITHUB_REPO: str    = os.getenv("GITHUB_REPO", "alexalkor/olx-free-stuff-bot")
+GITHUB_REPO: str    = os.getenv("GITHUB_REPO", "alexalkor/olx-bot")

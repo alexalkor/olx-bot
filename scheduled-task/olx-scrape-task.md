@@ -5,16 +5,21 @@ plain-text copy of the instructions behind the Claude Code scheduled task
 that does the actual scraping, kept here so the logic isn't invisible to
 anyone just reading the git history. The real thing lives as a scheduled
 task (trigger id `trig_01KefjPocyMk5isGEV6gDGvX`, name "OLX Free Stuff
-Scrape") — edit it with Claude Code's scheduled-task tools, not by editing
-this file. If you change the real task, update this mirror to match in the
-same session.
+Scrape") — edit it with Claude Code's scheduled-task tools (or the Claude
+desktop app on the computer it's bound to), not by editing this file. If
+you change the real task, update this mirror to match in the same session.
 
 **As of 2026-11, this task is disabled.** See the repo's `CLAUDE.md` for
 current status and why.
 
-The secret value below is a placeholder (`<WEBHOOK_SECRET>`) — the real
-task must never have the literal secret typed into its prompt text. See
-`CLAUDE.md` for how the secret should be supplied instead.
+**As of 2026-11-06, the secret has been rotated and is stored as a proper
+credential** (no longer typed in plain text in the task's instructions —
+the placeholder header value below is replaced automatically by the
+environment's network proxy). The pending change below (switching step 7
+from a browser-relayed fetch to a direct sandbox request) is proposed but
+not yet applied to the real task — it needs approval from a Cowork
+conversation linked to the computer the task runs on ("AlexPC"), or a
+manual edit there. This file already reflects the *intended* version.
 
 ---
 
@@ -30,8 +35,10 @@ and serves the @olxfreestuffbot Telegram bot).
 ToolSearch query:
 `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp,mcp__claude-in-chrome__get_page_text,mcp__claude-in-chrome__javascript_tool`.
 This task requires the user's Chrome browser (with the Claude-in-Chrome
-extension) to be open/connected on their computer. If it's not available,
-say so plainly in your final output rather than guessing at listings.
+extension) to be open/connected on their computer — needed for the
+scraping step only (steps 2-3), NOT for delivery (step 7, which now runs
+as a direct sandbox request). If Chrome isn't available, say so plainly in
+your final output rather than guessing at listings.
 
 **Step 2 — Open the page.** Call `tabs_context_mcp` first, then open a NEW
 tab (do not reuse a tab from another session) and navigate to:
@@ -95,17 +102,33 @@ still POST with an empty `listings` array (don't skip the POST) so the
 worker/bot state reflects "nothing new today" — but note the zero count
 clearly in your final chat output.
 
-**Step 7 — Deliver it to the Cloudflare Worker.** POST to
-`https://olx-free-stuff-worker.alexandr130514.workers.dev/offers` with
-header `X-Secret: <WEBHOOK_SECRET>` and the JSON body from step 6. (As of
-the 2026-11 cleanup this should be a direct request from the sandbox with
-the secret injected by the environment's credential store — not a
-browser-relayed fetch with the secret typed in plain text. If the
-environment can't reach that host directly, that's a setup problem to
-fix, not a reason to fall back to pasting the real secret into this
-prompt.) Report the parsed result in your final chat output, including the
-count and whether the GitHub backup succeeded (`github.status`). If the
-request fails, say so plainly — do not silently treat it as success.
+**Step 7 — Deliver it to the Cloudflare Worker.** POST the JSON payload
+directly from the sandbox with a plain curl call (do NOT route this
+through the browser — the sandbox's environment has direct network access
+to this host and an auto-injected credential):
+
+```
+curl -s -X POST https://olx-free-stuff-worker.alexandr130514.workers.dev/offers \
+  -H "Content-Type: application/json" \
+  -H "X-Secret: proxy-injected" \
+  -d '<the JSON payload from step 6, as a compact JSON string>'
+```
+
+IMPORTANT: `proxy-injected` above is a placeholder, not a real secret —
+this environment's network proxy replaces that header's value
+automatically before the request leaves the sandbox. NEVER put the actual
+`WEBHOOK_SECRET` value in this task's instructions or in any file; doing
+so defeats the point of storing it as a credential. If the response is
+401/403 (unauthorized), do not retry with a guessed header value — report
+the failure plainly in your final output (it likely means the stored
+credential for this host needs to be re-saved via `request_credential` by
+the user, or the host's network access rule changed) and stop.
+
+Parse the JSON response and report it in your final chat output, including
+the count and whether the GitHub backup succeeded (`github.status`). If
+the request fails for any other reason (connection error, non-200/201
+without `ok:true`, or `github.status` indicating failure), say so plainly
+— do not silently treat it as success.
 
 **Step 8 — Update dedup state.** Add the URL of every listing encountered
 in step 3 (whether or not it passed the category filter — this stops the

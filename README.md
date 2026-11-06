@@ -79,9 +79,9 @@ secrets are set via the dashboard and are **not** committed):
   (secret, dashboard-only)
 - `BOT_TOKEN` — Telegram bot token from @BotFather (secret, dashboard-only)
 - `ADMIN_CHAT_ID` — Telegram chat ID (your own chat with the bot) that
-  `/admin/alert` sends watchdog notifications to (dashboard variable,
-  not committed — a numeric Telegram ID isn't a secret per se, but it's
-  personal, so it's kept out of the repo like the other dashboard vars)
+  `/admin/alert` sends watchdog notifications to (secret, dashboard-only —
+  not an access credential like the others, but personal, so it's kept
+  encrypted and out of the repo the same way)
 
 One-time setup after `BOT_TOKEN` is added: visit
 `https://<worker-subdomain>/admin/set-webhook?secret=<WEBHOOK_SECRET>` once

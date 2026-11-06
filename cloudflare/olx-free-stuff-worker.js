@@ -40,10 +40,12 @@
 //   GET  /admin/set-webhook     -> (auth: ?secret=) registers the Telegram webhook
 //   GET  /admin/webhook-info    -> (auth: ?secret=) proxies Telegram getWebhookInfo
 //
-// NOTE: this file is a manually-maintained mirror of the Worker as edited in
-// the Cloudflare dashboard's Quick Editor. The dashboard copy is the source
-// of truth — update this file by hand after making changes there, it is not
-// auto-synced.
+// NOTE: this file IS the source of truth — Cloudflare Workers Builds
+// auto-deploys it on every push to `main` (see README.md). Confirmed
+// 2026-11-06 by diffing the live deployed bundle against this file; they
+// matched. Don't hand-edit the Worker in the Cloudflare dashboard's Quick
+// Editor — changes made there won't be reflected here and will be
+// overwritten by the next auto-deploy from this file.
 
 const VERSION = "v2.0-olx-worker-telegram";
 const TG_MAX_CHARS = 3500; // stay comfortably under Telegram's 4096 limit

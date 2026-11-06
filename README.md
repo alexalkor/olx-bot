@@ -7,6 +7,15 @@ bot. Sibling of
 (the Warsaw events bot) — the Telegram bot below mirrors that project's
 menu/language-picker pattern.
 
+## Status (as of 2026-11-06)
+
+**The scraper is currently paused.** It's a Claude Code scheduled task (not
+a file in this repo — see [`CLAUDE.md`](CLAUDE.md) and
+[`scheduled-task/olx-scrape-task.md`](scheduled-task/olx-scrape-task.md)
+for what it does), disabled since 2026-09-18 while a hardcoded-secret issue
+in it gets fixed. `data/offers.json` hasn't had fresh data since then. The
+Cloudflare Worker itself is confirmed live and matches this repo's `main`.
+
 ## Status (as of 2026-08-27)
 
 **Railway has been decommissioned.** The Python/aiogram Telegram bot in this
@@ -35,9 +44,9 @@ OLX Free Stuff Scrapper          Cloudflare Worker                 GitHub
                                                            picker, offer delivery)
 ```
 
-1. The scraper (a local scheduled task, not part of this repo) scrapes OLX,
-   filters for free listings, and `POST`s them to the Cloudflare Worker
-   `olx-free-stuff-worker`.
+1. The scraper — a Claude Code scheduled task, not a file in this repo (see
+   [`CLAUDE.md`](CLAUDE.md)) — scrapes OLX, filters for free listings, and
+   `POST`s them to the Cloudflare Worker `olx-free-stuff-worker`.
 2. The Worker stores the payload in Workers KV under key `"latest"`, then
    backs it up to this repo as `data/offers.json` via the GitHub Contents API.
 3. Telegram users message the bot; the Worker receives updates via webhook

@@ -9,13 +9,19 @@ menu/language-picker pattern.
 
 ## Status (as of 2026-08-27)
 
-**Railway has been decommissioned.** The Python/aiogram Telegram bot in this
-repo (`main.py` and its supporting `config/`, `database/`, `handlers/`,
-`keyboards/`, `locales/`, `utils/` modules) is **legacy code and is not
-currently deployed anywhere**. It's kept for reference only — see the notice
-at the top of `main.py`, and the **Legacy** section below. It has been
-replaced by a Cloudflare Worker Telegram bot (menu + inline language picker),
-described below.
+**Railway has been decommissioned.** The Python/aiogram Telegram bot
+(`legacy/main.py` and its supporting `config/`, `database/`, `handlers/`,
+`keyboards/`, `locales/`, `utils/` modules, all under `legacy/`) is **legacy
+code and is not currently deployed anywhere**. It's kept for reference only —
+see the notice at the top of `legacy/main.py`, and the **Legacy** section
+below. It has been replaced by a Cloudflare Worker Telegram bot (menu +
+inline language picker), described below.
+
+It lives under `legacy/` rather than the repo root specifically so that
+Cloudflare Workers Builds doesn't auto-detect `requirements.txt` and try to
+`pip install` it before every deploy — that previously broke every build
+(unrelated `pydantic-core`/Rust toolchain failure) even though this code
+never runs.
 
 The project now runs entirely on **Git + Cloudflare**, nothing else — including
 the Worker's deploys, which now happen automatically on every push to `main`
@@ -136,18 +142,25 @@ instead:
 ├── wrangler.toml                  # Worker config (name, main entry, KV binding, plain-text vars)
 ├── cloudflare/
 │   └── olx-free-stuff-worker.js   # the deployed Worker source — see Status above
-├── main.py                        # LEGACY — aiohttp + aiogram polling bot, not deployed
-├── .env.example                   # LEGACY — only relevant if main.py is redeployed somewhere
-├── requirements.txt                # LEGACY
-├── config/
-│   └── settings.py                # LEGACY
-├── database/
-│   ├── db.py                      # LEGACY — SQLite: users, offers, offer_translations
-│   └── github_storage.py          # LEGACY — expects the old {"raw","translations"} JSON shape
-├── handlers/                      # LEGACY — /start, /help, /language, menu, admin
-├── keyboards/                     # LEGACY
-├── locales/                       # LEGACY — en/pl/ru/be/uk/de JSON
-├── utils/                         # LEGACY — i18n loader, MyMemory translator
+├── legacy/                        # LEGACY — aiohttp + aiogram polling bot, not deployed.
+│   │                               Kept out of the repo root on purpose: Cloudflare Workers
+│   │                               Builds auto-detects requirements.txt at the root and tries
+│   │                               to pip-install it before every deploy, which breaks the
+│   │                               build (unrelated pydantic-core/Rust toolchain issue) even
+│   │                               though this code never runs. Do not move these files back
+│   │                               to the root.
+│   ├── main.py
+│   ├── .env.example                # only relevant if main.py is redeployed somewhere
+│   ├── requirements.txt
+│   ├── config/
+│   │   └── settings.py
+│   ├── database/
+│   │   ├── db.py                  # SQLite: users, offers, offer_translations
+│   │   └── github_storage.py      # expects the old {"raw","translations"} JSON shape
+│   ├── handlers/                  # /start, /help, /language, menu, admin
+│   ├── keyboards/
+│   ├── locales/                   # en/pl/ru/be/uk/de JSON
+│   └── utils/                     # i18n loader, MyMemory translator
 └── data/
     └── offers.json                # LIVE — written by the Cloudflare Worker, see format above
 ```
@@ -188,8 +201,8 @@ OLX Free Stuff Scrapper    this bot (Railway)      Telegram users
 ### Setup
 
 1. **Prerequisites**: Python 3.10+
-2. **Install dependencies**: `pip install -r requirements.txt`
-3. **Configure environment**: `cp .env.example .env`, then fill in:
+2. **Install dependencies**: `cd legacy && pip install -r requirements.txt`
+3. **Configure environment**: `cp .env.example .env` (inside `legacy/`), then fill in:
 
    | Variable | Purpose |
    |-------------------|--------------------------------------------------------------------------|
@@ -201,7 +214,7 @@ OLX Free Stuff Scrapper    this bot (Railway)      Telegram users
    | `MYMEMORY_EMAIL` | Email registered with MyMemory for the higher 50k-word/day quota |
    | `GITHUB_REPO` | `owner/repo` — defaults to `alexalkor/olx-free-stuff-bot` |
 
-4. **Run the bot**: `python main.py` — polls Telegram for updates and also
+4. **Run the bot**: `python main.py` (from inside `legacy/`) — polls Telegram for updates and also
    runs a small HTTP server (for the scraper webhook + health checks).
 
 ### Commands

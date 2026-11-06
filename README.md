@@ -89,7 +89,7 @@ Required Cloudflare configuration (Settings → Variables/Bindings on
 secrets are set via the dashboard and are **not** committed):
 
 - KV namespace binding `OFFERS_KV` (in `wrangler.toml`)
-- `GITHUB_REPO` = `alexalkor/olx-free-stuff-bot` (plain text var, in `wrangler.toml`)
+- `GITHUB_REPO` = `alexalkor/olx-bot` (plain text var, in `wrangler.toml`)
 - `GITHUB_FILE` = `data/offers.json` (plain text var, in `wrangler.toml`)
 - `WEBHOOK_SECRET` — shared secret. Must match the `X-Secret` header the
   scraper sends, **and** is reused as the Telegram webhook's
@@ -155,6 +155,8 @@ instead:
 ```
 .
 ├── wrangler.toml                  # Worker config (name, main entry, KV binding, plain-text vars)
+├── package.json                   # pins the wrangler version used to deploy
+├── LICENSE                        # MIT
 ├── cloudflare/
 │   └── olx-free-stuff-worker.js   # the deployed Worker source — see Status above
 ├── legacy/                        # LEGACY — aiohttp + aiogram polling bot, not deployed.
@@ -178,11 +180,11 @@ instead:
 ## Legacy: the Railway/aiogram bot (not deployed)
 
 Everything in this section describes the bot as it worked **before Railway
-was decommissioned**. None of it runs today. It's left in the repo for
-reference; Telegram delivery has since been rebuilt as a Cloudflare Worker
-acting as a Telegram webhook (the pattern `warsaw-events-worker` uses for the
-sibling project), described above, rather than a redeployed Railway/aiogram
-polling process.
+was decommissioned**. None of it runs today. It's left in the repo, under
+[`legacy/`](legacy/), for reference; Telegram delivery has since been rebuilt
+as a Cloudflare Worker acting as a Telegram webhook (the pattern
+`warsaw-events-worker` uses for the sibling project), described above, rather
+than a redeployed Railway/aiogram polling process.
 
 <details>
 <summary>Expand for the original Railway-era documentation</summary>
@@ -222,7 +224,7 @@ OLX Free Stuff Scrapper    this bot (Railway)      Telegram users
    | `ADMIN_USER_ID` | Telegram numeric user ID (send `/myid` to the bot to find it) |
    | `GITHUB_PAT` | A GitHub PAT with `contents:write` on this repo, for the JSON backup |
    | `MYMEMORY_EMAIL` | Email registered with MyMemory for the higher 50k-word/day quota |
-   | `GITHUB_REPO` | `owner/repo` — defaults to `alexalkor/olx-free-stuff-bot` |
+   | `GITHUB_REPO` | `owner/repo` — defaults to `alexalkor/olx-bot` |
 
 4. **Run the bot**: `python main.py` (from inside `legacy/`) — polls Telegram
    for updates and also runs a small HTTP server (for the scraper webhook +
@@ -293,3 +295,7 @@ the MyMemory integration).
   Telegram itself.
 
 </details>
+
+## License
+
+[MIT](LICENSE)

@@ -5,3 +5,5 @@ __pycache__/
 bot.db
 bot.db-journal
 *.db-journal
+node_modules/
+.wrangler/

@@ -39,6 +39,10 @@
 //   POST /webhook               -> Telegram update delivery (set via /admin/set-webhook)
 //   GET  /admin/set-webhook     -> (auth: ?secret=) registers the Telegram webhook
 //   GET  /admin/webhook-info    -> (auth: ?secret=) proxies Telegram getWebhookInfo
+//   POST /admin/alert           -> (auth: X-Secret header) sends a Telegram message to
+//                                  ADMIN_CHAT_ID. Used by the cloud freshness-watchdog
+//                                  scheduled task to notify the admin when the scraper
+//                                  (still local-only, see README) hasn't posted in a while.
 //
 // NOTE: this file IS the source of truth — Cloudflare Workers Builds
 // auto-deploys it on every push to `main` (see README.md). Confirmed
@@ -444,6 +448,27 @@ export default {
       }
       if (!env.BOT_TOKEN) return json({ ok: false, error: "BOT_TOKEN not configured" }, 500);
       const result = await tgRaw(env, "getWebhookInfo", {});
+      return json({ ok: true, telegram: result });
+    }
+
+    if (url.pathname === "/admin/alert" && request.method === "POST") {
+      const secret = request.headers.get("X-Secret") || "";
+      if (!env.WEBHOOK_SECRET || secret !== env.WEBHOOK_SECRET) {
+        return json({ ok: false, error: "Unauthorized" }, 401);
+      }
+      if (!env.BOT_TOKEN || !env.ADMIN_CHAT_ID) {
+        return json({ ok: false, error: "BOT_TOKEN or ADMIN_CHAT_ID not configured" }, 500);
+      }
+      let payload;
+      try {
+        payload = await request.json();
+      } catch (e) {
+        return json({ ok: false, error: "Invalid JSON body" }, 400);
+      }
+      const message = typeof payload.message === "string" && payload.message.trim()
+        ? payload.message
+        : "⚠️ OLX watchdog alert";
+      const result = await send(env, env.ADMIN_CHAT_ID, message);
       return json({ ok: true, telegram: result });
     }
 

@@ -11,7 +11,7 @@ scraped from OLX.pl's Warsaw classifieds to subscribers, in their choice of
 only the menu/button text is translated, listings themselves are shown as
 scraped, in Polish).
 
-## Architecture — three pieces, only one of them in this repo
+## Architecture — four pieces, only two of them in this repo
 
 ```
 Claude Code scheduled task        Cloudflare Worker              GitHub (this repo)
@@ -21,6 +21,10 @@ Claude Code scheduled task        Cloudflare Worker              GitHub (this re
                                                             +-> Telegram Bot API
                                                                 (webhook: menu, language
                                                                  picker, offer delivery)
+
+Claude Code scheduled task
+ "OLX offers freshness watchdog"  --GET /offers / POST /admin/alert-->  same Worker
+ (fully cloud, NOT part of this repo, NOT dependent on Alex's PC)
 ```
 
 1. **The scraper is a Claude Code *scheduled task*, not a file anywhere in
@@ -51,12 +55,27 @@ Claude Code scheduled task        Cloudflare Worker              GitHub (this re
      this repo's `data/offers.json` via the GitHub Contents API
    - serves the Telegram webhook: menu, language picker, delivering the
      current offer batch
+   - serves `POST /admin/alert` (added 2026-11-06): sends a Telegram
+     message to `ADMIN_CHAT_ID`, used by the watchdog task below
 
-3. **This repo** — the Worker's source, the data snapshot, and a fully
-   legacy Python/aiogram bot (`main.py` and its supporting `config/`,
-   `database/`, `handlers/`, `keyboards/`, `locales/`, `utils/` modules)
-   that used to run on Railway. Railway has been decommissioned; none of
-   that Python code runs anywhere today. Kept for reference only.
+3. **The freshness watchdog** (`trig_01Uf35WF3PkZr8QzTmRDfYte`, "OLX offers
+   freshness watchdog", added 2026-11-06) — a second, independent Claude
+   Code scheduled task, also not a file anywhere in git, that runs every
+   12h fully in the cloud: `GET /offers`, checks how stale `timestamp` is,
+   and `POST`s `/admin/alert` if the scraper (item 1) hasn't posted
+   recently. It exists specifically because item 1's scrape step can't run
+   in the cloud (OLX blocks cloud/datacenter IPs) — this is the piece that
+   *can*, so it watches for item 1 going silent instead of replacing it.
+
+4. **This repo** — the Worker's source, the data snapshot, and a fully
+   legacy Python/aiogram bot under `legacy/` (`legacy/main.py` and its
+   supporting `config/`, `database/`, `handlers/`, `keyboards/`, `locales/`,
+   `utils/` modules) that used to run on Railway. Railway has been
+   decommissioned; none of that Python code runs anywhere today. Kept for
+   reference only, and moved under `legacy/` (2026-11-06) so Cloudflare
+   Workers Builds stops auto-detecting its `requirements.txt` and trying to
+   `pip install` it before every deploy — that was breaking every build
+   regardless of what changed in the Worker's own code.
 
 See [`README.md`](README.md) for full endpoint docs, required Cloudflare
 config, and the legacy bot's original documentation.
@@ -67,16 +86,25 @@ config, and the legacy bot's original documentation.
 - **Telegram bot: should be live** via the Worker's webhook — not yet
   independently re-confirmed with `getWebhookInfo` this round; check before
   relying on that assumption.
-- **Scraper: NOT running.** Disabled since 2026-09-18 — `data/offers.json`
-  hasn't had real new data since 2026-09-17. It's being reworked (removing
-  a hardcoded secret from the task's instructions, switching its delivery
-  step from a browser-relayed fetch to a direct request from the sandbox)
-  before being turned back on. Do not re-enable it without checking with
-  Alex first — he asked for this explicitly during the 2026-11 cleanup.
-- **`alexalkor/olx-bot`** is a duplicate/mirror of this repo (byte-identical
-  at the same commit) with no role in the live system. Alex asked for it to
-  be deleted; deleting a GitHub repo isn't something these tools can do, so
-  it's on him to remove via GitHub's own UI.
+- **Scraper: still NOT running, and staying off.** Disabled since
+  2026-09-18 — `data/offers.json` hasn't had real new data since
+  2026-09-17. The rework (removing a hardcoded secret from the task's
+  instructions, switching delivery from a browser-relayed fetch to a
+  direct sandbox request) is done. Alex has confirmed: leave it disabled
+  for now — do not re-enable without checking with him first.
+- **Freshness watchdog: live**, added 2026-11-06, see item 3 above.
+- **Correction, 2026-11-06:** an earlier version of this file claimed
+  `alexalkor/olx-bot` was a duplicate repo Alex wanted deleted. That's
+  self-contradictory as written — this file, this CLAUDE.md, is itself
+  committed in `alexalkor/olx-bot`, which is also where the Worker's
+  source, `data/offers.json`, and all the active PRs for this project
+  live. The Worker's `GITHUB_REPO` var backs up data to a *differently
+  named* repo, `alexalkor/olx-free-stuff-bot` — that's most likely what
+  was actually meant (possibly a stale name from before a rename, now
+  only receiving automated data-backup pushes with no code or human
+  activity of its own). Don't act on either claim — confirm with Alex
+  which repo (if any) is actually redundant before anyone considers
+  deleting anything.
 
 ## Rules for future sessions
 

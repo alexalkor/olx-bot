@@ -9,8 +9,12 @@ Scrape") — edit it with Claude Code's scheduled-task tools (or the Claude
 desktop app on the computer it's bound to), not by editing this file. If
 you change the real task, update this mirror to match in the same session.
 
-**As of 2026-11, this task is disabled.** See the repo's `CLAUDE.md` for
-current status and why.
+**As of 2026-11, this task is disabled, and staying off until Alex says
+otherwise.** See the repo's `CLAUDE.md` for current status and why. A
+separate, fully-cloud scheduled task ("OLX offers freshness watchdog",
+`trig_01Uf35WF3PkZr8QzTmRDfYte`) watches for this task going silent and
+alerts via Telegram — it doesn't replace this task, it just notices when
+this one isn't running.
 
 **As of 2026-11-06, the secret has been rotated and is stored as a proper
 credential** (no longer typed in plain text in the task's instructions —

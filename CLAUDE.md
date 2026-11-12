@@ -129,3 +129,12 @@ config, and the legacy bot's original documentation.
   the Worker side, ask him what's in the Cloudflare dashboard's Build/Git
   settings for `olx-free-stuff-worker`, or compare deployed output against
   `cloudflare/olx-free-stuff-worker.js` the way this round did.
+
+## Git: merge automatically (Alex's rule for all repos)
+When a change is finished and its checks pass, push it and merge it into
+`main` without asking, then tell Alex what was merged. Ask first only when the
+change would affect something live right away: deploying, changing passwords,
+tokens or secrets, deleting data, or changing scheduled tasks.
+In this repo a push to `main` deploys the live Worker automatically
+(Cloudflare Workers Builds), so a change to the Worker code in `cloudflare/`
+counts as deploying: ask first. Documentation and data changes merge freely.

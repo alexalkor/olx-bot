@@ -4,6 +4,12 @@
 export const LANG_NAMES = { en: "English", pl: "Polski", ru: "Русский", be: "Беларуская", uk: "Українська", de: "Deutsch" };
 
 const en = {
+  recovered: "✅ OLX answers again — subscriptions are running.",
+  cmd_start: "main menu",
+  cmd_searches: "your saved searches",
+  cmd_new: "new search",
+  cmd_language: "change language",
+  cmd_help: "help",
   choose_lang: "👋 Hi! I search OLX for you and send matching listings here.\n\nChoose your language:",
   lang_set: (n) => `✅ Language: ${n}`,
   main: "🔎 <b>OLX search</b>\n\nSave a search (category, keywords, place, price) — then refresh it with one tap, or subscribe and I'll send new listings on my own.",
@@ -82,6 +88,12 @@ const en = {
 };
 
 const pl = {
+  recovered: "✅ OLX znów odpowiada.",
+  cmd_start: "menu główne",
+  cmd_searches: "zapisane wyszukiwania",
+  cmd_new: "nowe wyszukiwanie",
+  cmd_language: "zmień język",
+  cmd_help: "pomoc",
   choose_lang: "👋 Cześć! Przeszukuję OLX za Ciebie i wysyłam tu pasujące ogłoszenia.\n\nWybierz język:",
   lang_set: (n) => `✅ Język: ${n}`,
   main: "🔎 <b>Wyszukiwanie OLX</b>\n\nZapisz wyszukiwanie (kategoria, słowa, miejsce, cena) — odświeżaj je jednym kliknięciem albo włącz powiadomienia, a nowe ogłoszenia przyślę sam.",
@@ -160,6 +172,12 @@ const pl = {
 };
 
 const ru = {
+  recovered: "✅ OLX снова отвечает.",
+  cmd_start: "главное меню",
+  cmd_searches: "сохранённые поиски",
+  cmd_new: "новый поиск",
+  cmd_language: "сменить язык",
+  cmd_help: "помощь",
   choose_lang: "👋 Привет! Я ищу на OLX за вас и присылаю сюда подходящие объявления.\n\nВыберите язык:",
   lang_set: (n) => `✅ Язык: ${n}`,
   main: "🔎 <b>Поиск по OLX</b>\n\nСохраните поиск (категория, слова, место, цена) — обновляйте его одной кнопкой или включите уведомления, и я сам пришлю новые объявления.",
@@ -238,6 +256,12 @@ const ru = {
 };
 
 const be = {
+  recovered: "✅ OLX зноў адказвае.",
+  cmd_start: "галоўнае меню",
+  cmd_searches: "захаваныя пошукі",
+  cmd_new: "новы пошук",
+  cmd_language: "змяніць мову",
+  cmd_help: "дапамога",
   choose_lang: "👋 Прывітанне! Я шукаю на OLX за вас і дасылаю сюды прыдатныя абвесткі.\n\nАбярыце мову:",
   lang_set: (n) => `✅ Мова: ${n}`,
   main: "🔎 <b>Пошук па OLX</b>\n\nЗахавайце пошук (катэгорыя, словы, месца, цана) — абнаўляйце яго адной кнопкай або ўключыце апавяшчэнні, і я сам дашлю новыя абвесткі.",
@@ -316,6 +340,12 @@ const be = {
 };
 
 const uk = {
+  recovered: "✅ OLX знову відповідає.",
+  cmd_start: "головне меню",
+  cmd_searches: "збережені пошуки",
+  cmd_new: "новий пошук",
+  cmd_language: "змінити мову",
+  cmd_help: "допомога",
   choose_lang: "👋 Привіт! Я шукаю на OLX за вас і надсилаю сюди відповідні оголошення.\n\nОберіть мову:",
   lang_set: (n) => `✅ Мова: ${n}`,
   main: "🔎 <b>Пошук на OLX</b>\n\nЗбережіть пошук (категорія, слова, місце, ціна) — оновлюйте його однією кнопкою або увімкніть сповіщення, і я сам надішлю нові оголошення.",
@@ -394,6 +424,12 @@ const uk = {
 };
 
 const de = {
+  recovered: "✅ OLX antwortet wieder.",
+  cmd_start: "Hauptmenü",
+  cmd_searches: "gespeicherte Suchen",
+  cmd_new: "neue Suche",
+  cmd_language: "Sprache ändern",
+  cmd_help: "Hilfe",
   choose_lang: "👋 Hallo! Ich durchsuche OLX für dich und schicke passende Anzeigen hierher.\n\nWähle deine Sprache:",
   lang_set: (n) => `✅ Sprache: ${n}`,
   main: "🔎 <b>OLX-Suche</b>\n\nSpeichere eine Suche (Kategorie, Stichwörter, Ort, Preis) — aktualisiere sie mit einem Tipp oder abonniere sie, dann schicke ich neue Anzeigen von selbst.",

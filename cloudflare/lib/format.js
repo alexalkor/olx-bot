@@ -4,7 +4,6 @@
 //   l:<code>                        language picked
 //   s:<searchId>:<action>[:<arg>]   actions on one saved search
 import { t, LANG_NAMES } from "./i18n.js";
-import { CATEGORIES, findCategory, WARSAW_DISTRICTS } from "./catalog.js";
 
 export function escapeHtml(s) {
   return String(s ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -30,18 +29,13 @@ export function priceLabel(s, lang) {
 
 export function locationLabel(s) {
   const loc = s.location || {};
-  if (!loc.cityId && !loc.regionId) return "🇵🇱 Polska";
-  const names = (loc.districtIds || [])
-    .map((id) => (WARSAW_DISTRICTS.find((d) => d.id === id) || {}).name)
-    .filter(Boolean);
+  if (!loc.cityId && !loc.regionId) return "Polska";
+  const names = loc.districtNames || [];
   return names.length ? `${loc.label} (${names.join(", ")})` : loc.label;
 }
 
 export function categoryLabel(s, lang) {
-  if (!s.categoryId) return t(lang, "l_any_cat");
-  const c = findCategory(s.categoryId);
-  if (c && c.parent) return `${c.parent.name} › ${c.name}`;
-  return s.categoryName || (c && c.name) || String(s.categoryId);
+  return s.categoryId ? s.categoryName || String(s.categoryId) : t(lang, "l_any_cat");
 }
 
 export function searchSummary(s, lang) {
@@ -121,30 +115,33 @@ function rows2(buttons) {
   return rows;
 }
 
-// parentId null -> top-level list; otherwise that category's children.
-export function categoryKeyboard(s, parentId, lang) {
+// Top level: cats = [{id, name, hasChildren}]
+export function categoryKeyboard(s, cats, lang) {
   const p = `s:${s.id}:`;
-  if (!parentId) {
-    const rows = rows2(CATEGORIES.map((c) => btn(c.name, c.children && c.children.length ? `${p}cp:${c.id}` : `${p}cs:${c.id}`)));
-    rows.unshift([btn(t(lang, "b_any_cat"), `${p}cs:0`)]);
-    rows.push([btn(t(lang, "b_back"), `${p}open`)]);
-    return { inline_keyboard: rows };
-  }
-  const parent = CATEGORIES.find((c) => c.id === parentId);
-  const rows = rows2((parent.children || []).map((c) => btn(c.name, `${p}cs:${c.id}`)));
+  const rows = rows2(cats.map((c) => btn(c.name, c.hasChildren ? `${p}cp:${c.id}` : `${p}cs:${c.id}`)));
+  rows.unshift([btn(t(lang, "b_any_cat"), `${p}cs:0`)]);
+  rows.push([btn(t(lang, "b_back"), `${p}open`)]);
+  return { inline_keyboard: rows };
+}
+
+// One parent's children: parent = {id, name, children: [{id, name}]}
+export function subcategoryKeyboard(s, parent, lang) {
+  const p = `s:${s.id}:`;
+  const rows = rows2(parent.children.map((c) => btn(c.name, `${p}cs:${c.id}`)));
   rows.unshift([btn(t(lang, "b_all_of", parent.name), `${p}cs:${parent.id}`)]);
   rows.push([btn(t(lang, "b_back"), `${p}cat`)]);
   return { inline_keyboard: rows };
 }
 
-export function locationKeyboard(s, lang) {
+// districts = [{id, name}] for the search's current city (may be empty)
+export function locationKeyboard(s, districts, lang) {
   const p = `s:${s.id}:`;
   const loc = s.location || {};
-  const isWarsaw = loc.cityId === 17871;
-  const chosen = new Set(isWarsaw ? loc.districtIds || [] : []);
-  const rows = rows2(WARSAW_DISTRICTS.map((d) => btn(`${chosen.has(d.id) ? "✅ " : ""}${d.name}`, `${p}di:${d.id}`)));
-  rows.unshift([btn(`${isWarsaw && !chosen.size ? "✅ " : ""}${t(lang, "b_all_districts")}`, `${p}da`)]);
+  const chosen = new Set(loc.districtIds || []);
+  const rows = rows2(districts.map((d) => btn(`${chosen.has(d.id) ? "✅ " : ""}${d.name}`, `${p}di:${d.id}`)));
+  if (loc.cityId) rows.unshift([btn(`${!chosen.size ? "✅ " : ""}${t(lang, "b_all_districts", loc.label)}`, `${p}da`)]);
   rows.push([btn(t(lang, "b_other_city"), `${p}city`), btn(`${!loc.cityId && !loc.regionId ? "✅ " : ""}${t(lang, "b_poland")}`, `${p}pl`)]);
+  if (loc.cityId !== 17871) rows.push([btn("📍 Warszawa", `${p}waw`)]);
   rows.push([btn(t(lang, "b_back"), `${p}open`)]);
   return { inline_keyboard: rows };
 }

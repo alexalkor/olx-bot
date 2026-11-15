@@ -40,6 +40,8 @@ function hasAny(text, stems) {
 }
 
 export function matchesSearch(offer, search) {
+  const dIds = (search.location && search.location.districtIds) || [];
+  if (dIds.length > 1 && offer.districtId != null && !dIds.includes(offer.districtId)) return false;
   const title = offer.title || "";
   const both = title + " " + (offer.description || "");
   if (search.realItemsOnly) {

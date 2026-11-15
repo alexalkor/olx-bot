@@ -5,106 +5,57 @@ plain language on purpose — the owner (Alex) is not a developer.
 
 ## What this project is
 
-A Telegram bot (`@olxfreestuffbot`) that posts free ("za darmo") listings
-scraped from OLX.pl's Warsaw classifieds to subscribers, in their choice of
-6 UI languages (English, Polish, Russian, Belarusian, Ukrainian, German —
-only the menu/button text is translated, listings themselves are shown as
-scraped, in Polish).
+A Telegram bot (`@olxfreestuffbot`) that is "OLX search inside Telegram":
+each person saves searches (category, keywords, location, price / free only,
+"real items only" junk filter, excluded words), refreshes them with one tap,
+and can subscribe (hourly / every 3h / daily 9:00) to get new listings sent
+automatically. Menus in 6 languages (EN, PL, RU, BE, UK, DE); listings are
+shown as posted (Polish). Personal use for now — no paid tier.
 
-## Architecture — four pieces, only two of them in this repo
+Until v3 (Nov 2026) it was a single shared "free stuff" list fed by a Chrome
+scraper on Alex's PC; that is retired. "Free stuff — Warsaw" is now a
+ready-made search.
+
+## Architecture (v3)
 
 ```
-Claude Code scheduled task        Cloudflare Worker              GitHub (this repo)
- "OLX Free Stuff Scrape"   --POST-->  olx-free-stuff-worker --PUT-->  data/offers.json
- (runs via Alex's Chrome,       (auth: X-Secret header)   |
-  NOT part of this repo)                                  +-> Workers KV (live cache)
-                                                            +-> Telegram Bot API
-                                                                (webhook: menu, language
-                                                                 picker, offer delivery)
-
-Claude Code scheduled task
- "OLX offers freshness watchdog"  --GET /offers / POST /admin/alert-->  same Worker
- (fully cloud, NOT part of this repo, NOT dependent on Alex's PC)
+Telegram <--webhook--> Cloudflare Worker olx-free-stuff-worker --GET--> www.olx.pl/api/v1 (public JSON)
+                           | hourly cron "7 * * * *"
+                           v
+                       Workers KV (OFFERS_KV): searches, sent ids, language
 ```
 
-1. **The scraper is a Claude Code *scheduled task*, not a file anywhere in
-   git.** It only exists as a trigger definition (`trig_01KefjPocyMk5isGEV6gDGvX`,
-   name "OLX Free Stuff Scrape"). Each run: opens OLX.pl in Alex's actual
-   Chrome browser (via the Claude-in-Chrome extension — scraping needs a
-   real browser because OLX's listing grid is virtualized/JS-rendered),
-   scrapes the newest "oddam za darmo" listings, filters out junk categories
-   (pets, broken items, baby items, food), dedupes against a list of
-   previously-seen URLs stored in a claude.ai Project doc
-   (`claude/olx_seen_listings.json` in the "Olx Free Stuff Bot" project),
-   then sends the new listings to the Cloudflare Worker below.
-   A readable copy of its current instructions is kept at
-   [`scheduled-task/olx-scrape-task.md`](scheduled-task/olx-scrape-task.md)
-   for transparency — **that file is documentation, not executable code;
-   the real logic lives in the scheduled task itself** (view/edit it with
-   the Claude Code scheduled-task tools, not by editing that file).
-   **Status: disabled since 2026-09-18** — see "Current status" below.
+- Everything runs in the Worker. **OLX answers Cloudflare but blocks other
+  cloud machines** (including Claude Code cloud sandboxes, 403 from
+  CloudFront) — so never move OLX calls into a scheduled task or GitHub
+  Actions. To look at raw OLX responses from a session, Alex can paste a tiny
+  script into the throwaway `olx-test` Worker and paste back the output (done
+  2026-11-15; facts are recorded at the top of `cloudflare/lib/olx.js`).
+- Source: `cloudflare/olx-free-stuff-worker.js` + `cloudflare/lib/*`, tests in
+  `tests/` (`npm test`). Deployed by Cloudflare **Workers Builds on every push
+  to `main`** (confirmed 2026-11-06; the dashboard shows the Worker linked to
+  `alexalkor/olx-free-stuff-bot`, which is this repo's old name — GitHub
+  redirects it, so it is NOT a separate/duplicate repo). Other branches get
+  preview copies that share the live KV but never touch the live bot's
+  webhook or cron.
+- Design: `docs/superpowers/specs/2026-11-15-olx-search-bot-design.md`.
+- `legacy/` is the old Python/aiogram bot (Railway, decommissioned) — reference
+  only, kept under `legacy/` so Workers Builds doesn't try to pip-install it.
 
-2. **The Cloudflare Worker** (`olx-free-stuff-worker`) — its source **is**
-   committed here, at [`cloudflare/olx-free-stuff-worker.js`](cloudflare/olx-free-stuff-worker.js),
-   and deploys automatically on every push to `main` via
-   [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/).
-   Confirmed on 2026-11-06 by diffing the actually-deployed (bundled) code
-   against this repo's `main` — they matched exactly, so the auto-deploy is
-   genuinely working and this file is the real source of truth. It:
-   - stores incoming scraped offers in Workers KV, then backs them up to
-     this repo's `data/offers.json` via the GitHub Contents API
-   - serves the Telegram webhook: menu, language picker, delivering the
-     current offer batch
-   - serves `POST /admin/alert` (added 2026-11-06): sends a Telegram
-     message to `ADMIN_CHAT_ID`, used by the watchdog task below
+### Scheduled tasks (not in git)
 
-3. **The freshness watchdog** (`trig_01Uf35WF3PkZr8QzTmRDfYte`, "OLX offers
-   freshness watchdog", added 2026-11-06) — a second, independent Claude
-   Code scheduled task, also not a file anywhere in git, that runs every
-   12h fully in the cloud: `GET /offers`, checks how stale `timestamp` is,
-   and `POST`s `/admin/alert` if the scraper (item 1) hasn't posted
-   recently. It exists specifically because item 1's scrape step can't run
-   in the cloud (OLX blocks cloud/datacenter IPs) — this is the piece that
-   *can*, so it watches for item 1 going silent instead of replacing it.
+- "OLX Free Stuff Scrape" (`trig_01KefjPocyMk5isGEV6gDGvX`) — the retired
+  Chrome scraper. Disabled since 2026-09-18; obsolete with v3.
+- "OLX offers freshness watchdog" (`trig_01Uf35WF3PkZr8QzTmRDfYte`) — polled
+  `GET /offers`, which v3 removes, so it must be disabled when v3 goes live
+  (the Worker's own cron now alerts `ADMIN_CHAT_ID` if OLX stops answering).
+  Ask Alex before changing either task.
 
-4. **This repo** — the Worker's source, the data snapshot, and a fully
-   legacy Python/aiogram bot under `legacy/` (`legacy/main.py` and its
-   supporting `config/`, `database/`, `handlers/`, `keyboards/`, `locales/`,
-   `utils/` modules) that used to run on Railway. Railway has been
-   decommissioned; none of that Python code runs anywhere today. Kept for
-   reference only, and moved under `legacy/` (2026-11-06) so Cloudflare
-   Workers Builds stops auto-detecting its `requirements.txt` and trying to
-   `pip install` it before every deploy — that was breaking every build
-   regardless of what changed in the Worker's own code.
+## Current status (2026-11-15)
 
-See [`README.md`](README.md) for full endpoint docs, required Cloudflare
-config, and the legacy bot's original documentation.
-
-## Current status (as of 2026-11-06)
-
-- **Cloudflare Worker: live**, confirmed matching this repo's `main`.
-- **Telegram bot: should be live** via the Worker's webhook — not yet
-  independently re-confirmed with `getWebhookInfo` this round; check before
-  relying on that assumption.
-- **Scraper: still NOT running, and staying off.** Disabled since
-  2026-09-18 — `data/offers.json` hasn't had real new data since
-  2026-09-17. The rework (removing a hardcoded secret from the task's
-  instructions, switching delivery from a browser-relayed fetch to a
-  direct sandbox request) is done. Alex has confirmed: leave it disabled
-  for now — do not re-enable without checking with him first.
-- **Freshness watchdog: live**, added 2026-11-06, see item 3 above.
-- **Correction, 2026-11-06:** an earlier version of this file claimed
-  `alexalkor/olx-bot` was a duplicate repo Alex wanted deleted. That's
-  self-contradictory as written — this file, this CLAUDE.md, is itself
-  committed in `alexalkor/olx-bot`, which is also where the Worker's
-  source, `data/offers.json`, and all the active PRs for this project
-  live. The Worker's `GITHUB_REPO` var backs up data to a *differently
-  named* repo, `alexalkor/olx-free-stuff-bot` — that's most likely what
-  was actually meant (possibly a stale name from before a rename, now
-  only receiving automated data-backup pushes with no code or human
-  activity of its own). Don't act on either claim — confirm with Alex
-  which repo (if any) is actually redundant before anyone considers
-  deleting anything.
+- v3 built on branch `claude/friendly-newton-dgdkcm` (PR #4), tests passing;
+  waiting for Alex's go-ahead to merge (= deploy). Until then the live Worker
+  is v2 (`/health` shows the version).
 
 ## Rules for future sessions
 

@@ -1,5 +1,9 @@
 # OLX scraper — Claude Code scheduled task (read-only mirror)
 
+> **Retired with bot v3 (2026-11).** The Worker now searches OLX itself
+> (see `README.md`), so this Chrome-based scraper is no longer needed. Kept
+> for history only.
+
 This is **not executable code** and nothing in this repo runs it. It's a
 plain-text copy of the instructions behind the Claude Code scheduled task
 that does the actual scraping, kept here so the logic isn't invisible to

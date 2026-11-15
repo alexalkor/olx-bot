@@ -1,8 +1,10 @@
 {
   "name": "olx-free-stuff-worker",
   "private": true,
-  "description": "Cloudflare Worker: scrapes OLX free listings backup + Telegram bot webhook",
+  "type": "module",
+  "description": "Cloudflare Worker: Telegram bot with saved OLX searches and subscriptions",
   "scripts": {
+    "test": "node --test tests/*.test.mjs",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail"

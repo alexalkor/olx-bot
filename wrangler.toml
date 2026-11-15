@@ -2,10 +2,13 @@ name = "olx-free-stuff-worker"
 main = "cloudflare/olx-free-stuff-worker.js"
 compatibility_date = "2026-08-27"
 
+# Keep variables set in the Cloudflare dashboard (e.g. ADMIN_CHAT_ID) on deploy.
+keep_vars = true
+
 [[kv_namespaces]]
 binding = "OFFERS_KV"
 id = "d3d465889d804bee80280fccdd8ef67c"
 
-[vars]
-GITHUB_REPO = "alexalkor/olx-bot"
-GITHUB_FILE = "data/offers.json"
+# Hourly subscription check (minute 7, UTC). See cloudflare/lib/cron.js.
+[triggers]
+crons = ["7 * * * *"]

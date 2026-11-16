@@ -133,16 +133,28 @@ test("districts toggle and city lookup", async () => {
   assert.deepEqual(loc.districtIds, []);
 });
 
-test("category picker: top level then subcategory", async () => {
-  const { run, kv } = setup();
+test("category picker walks OLX's tree to any depth", async () => {
+  const { run, net, kv } = setup();
   await run(msg("/new"));
   const [s] = await st.getSearches(kv, 42);
   await run(cb(`s:${s.id}:cat`));
+  let kb = net.tg.at(-1).body.reply_markup.inline_keyboard.flat().map((b) => b.text);
+  assert.ok(kb.some((x) => x.startsWith("Elektronika")) && kb.some((x) => x.startsWith("Dom i Ogród")));
+  assert.ok(!kb.some((x) => x.startsWith("Komputery")));
   await run(cb(`s:${s.id}:cp:99`));
-  await run(cb(`s:${s.id}:cs:1000`));
+  await run(cb(`s:${s.id}:cp:443`));
+  kb = net.tg.at(-1).body.reply_markup.inline_keyboard.flat();
+  assert.ok(kb.some((b) => b.text.startsWith("Laptopy")));
+  assert.match(net.tg.at(-1).body.text, /Elektronika › Komputery/);
+  const back = kb.find((b) => /Back/.test(b.text));
+  assert.equal(back.callback_data, `s:${s.id}:cp:99`);
+  await run(cb(`s:${s.id}:cp:1199`));
+  await run(cb(`s:${s.id}:cp:3108`)); // leaf: picked straight away
   const after = await st.getSearch(kv, 42, s.id);
-  assert.equal(after.categoryId, 1000);
-  assert.equal(after.categoryName, "Elektronika › Telefony");
+  assert.equal(after.categoryId, 3108);
+  assert.equal(after.categoryName, "Elektronika › Komputery › Laptopy › Lenovo");
+  await run(cb(`s:${s.id}:cs:443`));
+  assert.equal((await st.getSearch(kv, 42, s.id)).categoryName, "Elektronika › Komputery");
 });
 
 test("delete asks, then removes", async () => {

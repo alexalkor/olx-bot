@@ -28,9 +28,13 @@ Telegram <--webhook--> Cloudflare Worker olx-free-stuff-worker --GET--> www.olx.
 - Everything runs in the Worker. **OLX answers Cloudflare but blocks other
   cloud machines** (including Claude Code cloud sandboxes, 403 from
   CloudFront) — so never move OLX calls into a scheduled task or GitHub
-  Actions. To look at raw OLX responses from a session, Alex can paste a tiny
-  script into the throwaway `olx-test` Worker and paste back the output (done
-  2026-11-15; facts are recorded at the top of `cloudflare/lib/olx.js`).
+  Actions. To look at raw OLX responses from a session, call the Worker's
+  admin-only `GET /admin/olx-get?path=/api/v1/...` (read-only, fixed host
+  www.olx.pl; the session's network proxy adds the `X-Secret` header for this
+  Worker's host). Facts learned this way are recorded at the top of
+  `cloudflare/lib/olx.js`.
+- Category menu = OLX's own live category tree (any depth), read from OLX's
+  search "facets" per category and cached in KV for a day.
 - Source: `cloudflare/olx-free-stuff-worker.js` + `cloudflare/lib/*`, tests in
   `tests/` (`npm test`). Deployed by Cloudflare **Workers Builds on every push
   to `main`** (confirmed 2026-11-06; the dashboard shows the Worker linked to
@@ -53,9 +57,10 @@ Telegram <--webhook--> Cloudflare Worker olx-free-stuff-worker --GET--> www.olx.
 
 ## Current status (2026-11-15)
 
-- v3 built on branch `claude/friendly-newton-dgdkcm` (PR #4), tests passing;
-  waiting for Alex's go-ahead to merge (= deploy). Until then the live Worker
-  is v2 (`/health` shows the version).
+- v3 is live since 2026-11-16 (PR #4) and Alex has tested it in Telegram.
+  v3.1 added `/admin/olx-get` (PR #5). `/health` shows the live version.
+- The freshness watchdog is still enabled. Alex wants it disabled only after
+  he's confirmed the hourly subscriptions work.
 
 ## Rules for future sessions
 

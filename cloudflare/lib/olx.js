@@ -5,7 +5,10 @@
 //    region_id, filter_enum_price[0]=free, filter_float_price:from/to (numbers)
 //  - sort_by=created_at:desc actually orders by last refresh, and paid ads
 //    come first, so callers sort by created time themselves.
-//  - /api/v1/friendly-links/query-params/<slug,parts>/ -> { category_id, ... }
+//  - /api/v1/offers/metadata/search/?category_id=X&facets=[{"field":
+//    "category_without_exclusions","fetchLabel":true,"fetchUrl":true,"limit":199}]
+//    -> X itself, its ancestors and descendants: {id,label,url,count}; url depth
+//    gives the level (limit must be < 200). This is OLX's live category tree.
 //  - /api/v1/geo-encoder/location-autocomplete/?query=  -> cities
 //  - /api/v1/geo-encoder/cities/<id>/districts/          -> districts
 
@@ -111,7 +114,11 @@ export async function fetchDistricts(cityId, fetchImpl = fetch) {
   return r.data.data.map((d) => ({ id: d.id, name: d.name })).sort((a, b) => a.name.localeCompare(b.name, "pl"));
 }
 
-export async function resolveSlug(slug, fetchImpl = fetch) {
-  const r = await olxJson(`/api/v1/friendly-links/query-params/${slug}/`, fetchImpl);
-  return r.ok && r.data && r.data.data && r.data.data.category_id ? Number(r.data.data.category_id) : null;
+export async function fetchCategoryFacets(categoryId, fetchImpl = fetch) {
+  const facets = JSON.stringify([{ field: "category_without_exclusions", fetchLabel: true, fetchUrl: true, limit: 199 }]);
+  const q = (categoryId ? `category_id=${categoryId}&` : "") + `facets=${encodeURIComponent(facets)}`;
+  const r = await olxJson(`/api/v1/offers/metadata/search/?${q}`, fetchImpl);
+  const list = r.ok && r.data && r.data.data && r.data.data.facets && r.data.data.facets.category_without_exclusions;
+  if (!Array.isArray(list)) return null;
+  return list.map((x) => ({ id: Number(x.id), name: x.label, url: String(x.url || ""), count: x.count || 0 }));
 }

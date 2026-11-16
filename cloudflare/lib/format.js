@@ -115,21 +115,20 @@ function rows2(buttons) {
   return rows;
 }
 
-// Top level: cats = [{id, name, hasChildren}]
-export function categoryKeyboard(s, cats, lang) {
-  const p = `s:${s.id}:`;
-  const rows = rows2(cats.map((c) => btn(c.name, c.hasChildren ? `${p}cp:${c.id}` : `${p}cs:${c.id}`)));
-  rows.unshift([btn(t(lang, "b_any_cat"), `${p}cs:0`)]);
-  rows.push([btn(t(lang, "b_back"), `${p}open`)]);
-  return { inline_keyboard: rows };
+function compact(n) {
+  if (!n) return "";
+  if (n >= 1e6) return ` · ${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1e3) return ` · ${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, "")}k`;
+  return ` · ${n}`;
 }
 
-// One parent's children: parent = {id, name, children: [{id, name}]}
-export function subcategoryKeyboard(s, parent, lang) {
+// One level of OLX's category tree: level = {id, name, path, parentId, children}
+export function categoryKeyboard(s, level, lang) {
   const p = `s:${s.id}:`;
-  const rows = rows2(parent.children.map((c) => btn(c.name, `${p}cs:${c.id}`)));
-  rows.unshift([btn(t(lang, "b_all_of", parent.name), `${p}cs:${parent.id}`)]);
-  rows.push([btn(t(lang, "b_back"), `${p}cat`)]);
+  const rows = rows2(level.children.map((c) => btn(`${c.name}${compact(c.count)}`, `${p}cp:${c.id}`)));
+  if (level.id) rows.unshift([btn(`✅ ${t(lang, "b_all_of", level.name)}`, `${p}cs:${level.id}`)]);
+  else rows.unshift([btn(t(lang, "b_any_cat"), `${p}cs:0`)]);
+  rows.push([btn(t(lang, "b_back"), level.id ? `${p}cp:${level.parentId}` : `${p}open`)]);
   return { inline_keyboard: rows };
 }
 

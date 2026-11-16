@@ -6,6 +6,8 @@ category, keywords, location (city / districts / whole Poland), price or
 repair services, and their own excluded words — then either refreshes a search
 with one tap (**📬 Show what's listed now**) or subscribes to it (every hour,
 every 3 hours, or daily at 9:00) and gets new listings delivered as they appear.
+The category menu is OLX's own live category tree, to any depth
+(Elektronika › Komputery › Laptopy › Lenovo), with listing counts.
 A ready-made **"Free stuff — Warsaw"** search keeps the bot's original purpose.
 
 Bot: `@olxfreestuffbot` (display name can be changed in BotFather).
@@ -61,6 +63,7 @@ Cloudflare settings this Worker needs:
 | `GET /admin/webhook-info` | same | Telegram `getWebhookInfo` |
 | `POST /admin/alert` | same | send `{ "message": "…" }` to `ADMIN_CHAT_ID` |
 | `GET/POST /admin/run-cron` | same | run the hourly subscription check now |
+| `GET /admin/olx-get?path=/…` | same | read-only GET of a public www.olx.pl page/API (for debugging; OLX blocks most other cloud machines) |
 
 The old `GET/POST /offers` endpoints (scraper ingest) and the GitHub backup to
 `data/offers.json` were removed in v3; `data/offers.json` is the last snapshot

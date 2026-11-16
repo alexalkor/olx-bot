@@ -4,7 +4,7 @@ import * as st from "./store.js";
 import * as f from "./format.js";
 import { fetchOffers, lookupCity } from "./olx.js";
 import { selectNew, FREE_STUFF_EXCLUDES } from "./filter.js";
-import { getTopCategories, getSubcategories, getDistricts, FREE_CATEGORY_ID } from "./catalog.js";
+import { getCategoryLevel, getDistricts, FREE_CATEGORY_ID } from "./catalog.js";
 
 export const PAGE = 5;
 export const SHOW_MAX = 20;
@@ -182,31 +182,27 @@ async function handleSearchAction(env, chatId, msgId, searchId, action, arg, lan
       return runShowNow(env, chatId, s, 0, lang, deps);
     case "more":
       return runShowNow(env, chatId, s, Math.max(0, Number(arg) || 0), lang, deps);
-    case "cat": {
-      const cats = await getTopCategories(kv, deps.fetchImpl);
-      if (!cats || !cats.length) return send(env, chatId, t(lang, "olx_down"), deps);
-      return render(env, chatId, msgId, t(lang, "pick_cat"), f.categoryKeyboard(s, cats, lang), deps);
-    }
+    case "cat":
+      return handleSearchAction(env, chatId, msgId, searchId, "cp", String(s.categoryId || 0), lang, deps);
     case "cp": {
-      const parent = await getSubcategories(kv, Number(arg), deps.fetchImpl);
-      if (!parent) return handleSearchAction(env, chatId, msgId, searchId, "cat", null, lang, deps);
-      if (!parent.children.length) return handleSearchAction(env, chatId, msgId, searchId, "cs", String(parent.id), lang, deps);
-      return render(env, chatId, msgId, t(lang, "pick_cat"), f.subcategoryKeyboard(s, parent, lang), deps);
+      const level = await getCategoryLevel(kv, Number(arg) || 0, deps.fetchImpl);
+      if (!level) {
+        if (Number(arg)) return handleSearchAction(env, chatId, msgId, searchId, "cp", "0", lang, deps);
+        return send(env, chatId, t(lang, "olx_down"), deps);
+      }
+      // A leaf category (no subcategories): pick it straight away.
+      if (level.id && !level.children.length) {
+        return handleSearchAction(env, chatId, msgId, searchId, "cs", String(level.id), lang, deps);
+      }
+      const head = level.path ? `\n📂 <b>${f.escapeHtml(level.path)}</b>` : "";
+      return render(env, chatId, msgId, t(lang, "pick_cat") + head, f.categoryKeyboard(s, level, lang), deps);
     }
     case "cs": {
       const id = Number(arg) || null;
       let name = "";
       if (id) {
-        const tops = (await getTopCategories(kv, deps.fetchImpl)) || [];
-        const top = tops.find((c) => c.id === id);
-        if (top) name = top.name;
-        else {
-          for (const c of tops.filter((x) => x.hasChildren)) {
-            const sub = await kv.get(`cat:sub:${c.id}:v1`, { type: "json" });
-            const ch = sub && sub.find((x) => x.id === id);
-            if (ch) { name = `${c.name} › ${ch.name}`; break; }
-          }
-        }
+        const level = await getCategoryLevel(kv, id, deps.fetchImpl);
+        name = (level && level.path) || "";
       }
       await upd((x) => ({ ...x, categoryId: id, categoryName: name }));
       return showSearch(env, chatId, s, lang, deps, msgId);

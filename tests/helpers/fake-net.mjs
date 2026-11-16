@@ -18,10 +18,24 @@ export function fakeNet({ olxStatus = 200, olxBody = fixture, photoFails = false
         if (method === "sendPhoto" && photoFails) return Response.json({ ok: false, description: "Bad Request: wrong file" });
         return Response.json({ ok: true, result: { message_id: nextId++ } });
       }
-      if (url.includes("olx.pl/api/v1/offers/")) {
+      if (url.includes("olx.pl/api/v1/offers/?")) {
         olx.push(url);
         const b = net.olxBody;
         return new Response(typeof b === "string" ? b : JSON.stringify(b), { status: net.olxStatus });
+      }
+      if (url.includes("/offers/metadata/search/")) {
+        const cat = new URL(url).searchParams.get("category_id");
+        const all = [
+          { id: 99, label: "Elektronika", url: "/elektronika", count: 1000 },
+          { id: 443, label: "Komputery", url: "/elektronika/komputery", count: 500 },
+          { id: 1838, label: "Telefony", url: "/elektronika/telefony", count: 400 },
+          { id: 1199, label: "Laptopy", url: "/elektronika/komputery/laptopy", count: 300 },
+          { id: 3108, label: "Lenovo", url: "/elektronika/komputery/laptopy/lenovo", count: 50 },
+          { id: 628, label: "Dom i Ogród", url: "/dom-ogrod", count: 900 },
+        ];
+        const node = all.find((x) => String(x.id) === cat);
+        const list = node ? all.filter((x) => x.url.startsWith(node.url) || node.url.startsWith(x.url + "/")) : all;
+        return Response.json({ data: { facets: { category_without_exclusions: list } } });
       }
       if (url.includes("/friendly-links/query-params/")) {
         const slug = url.split("/query-params/")[1].replace(/\/$/, "");

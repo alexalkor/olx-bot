@@ -246,7 +246,6 @@ async function handleSearchAction(env, chatId, msgId, searchId, action, arg, lan
         delivery: v,
         // Only listings posted after subscribing count as "new".
         subscribedAt: v !== "off" && (x.delivery === "off" || !x.subscribedAt) ? nowIso : x.subscribedAt,
-        lastRunAt: v !== "off" && x.delivery === "off" ? nowIso : x.lastRunAt,
       }));
       await render(env, chatId, msgId, f.searchSummary(s, lang), f.searchKeyboard(s, lang), deps);
       if (v !== "off") return send(env, chatId, t(lang, "subscribed", f.deliveryLabel(v, lang)), deps);

@@ -45,7 +45,7 @@ import { handleUpdate, send, tg } from "./lib/bot.js";
 import { runCron } from "./lib/cron.js";
 import { OLX_HEADERS } from "./lib/olx.js";
 
-const VERSION = "v3.2-olx-search";
+const VERSION = "v3.2.1-olx-search";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });

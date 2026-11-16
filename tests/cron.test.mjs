@@ -70,3 +70,10 @@ test("batch over 10 sends 10 + a 'more' note", async () => {
   assert.equal(offersSent(net).length, 10);
   assert.match(net.tg.at(-1).body.text, /and 4 more/);
 });
+
+test("a fresh subscription is checked at the very next hourly run", async () => {
+  const { kv, run } = setup();
+  await st.addSearch(kv, 42, st.newSearch({ delivery: "1h", subscribedAt: "2026-11-16T00:50:00Z", lastRunAt: null }));
+  const r = await run(); // now = 01:07Z, 17 min after subscribing
+  assert.equal(r.checked, 1);
+});

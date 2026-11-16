@@ -34,14 +34,18 @@
 //   GET  /admin/webhook-info  -> Telegram getWebhookInfo
 //   POST /admin/alert         -> send a message to ADMIN_CHAT_ID
 //   GET|POST /admin/run-cron  -> run the hourly subscription check now
+//   GET  /admin/olx-get?path= -> read-only GET of a public www.olx.pl page/API
+//                                (OLX blocks Claude's cloud sandboxes but not
+//                                this Worker; lets a session inspect OLX)
 //
 // This file IS the source of truth: Workers Builds deploys it on every push to
 // `main`. Don't hand-edit the Worker in the dashboard.
 
 import { handleUpdate, send, tg } from "./lib/bot.js";
 import { runCron } from "./lib/cron.js";
+import { OLX_HEADERS } from "./lib/olx.js";
 
-const VERSION = "v3.0-olx-search";
+const VERSION = "v3.1-olx-search";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
@@ -92,6 +96,15 @@ export default {
         try { payload = await request.json(); } catch { return json({ ok: false, error: "Invalid JSON body" }, 400); }
         const message = typeof payload.message === "string" && payload.message.trim() ? payload.message : "⚠️ OLX bot alert";
         return json({ ok: true, telegram: await send(env, env.ADMIN_CHAT_ID, message, deps()) });
+      }
+      if (path === "/admin/olx-get" && request.method === "GET") {
+        // Fixed host, GET only, path must be a plain absolute path on www.olx.pl.
+        const p = url.searchParams.get("path") || "";
+        if (!/^\/[^\s]*$/.test(p) || p.startsWith("//")) return json({ ok: false, error: "path must start with /" }, 400);
+        const max = Math.min(Number(url.searchParams.get("max")) || 200000, 2000000);
+        const r = await fetch("https://www.olx.pl" + p, { headers: OLX_HEADERS });
+        const body = await r.text();
+        return json({ ok: true, status: r.status, length: body.length, body: body.slice(0, max) });
       }
       if (path === "/admin/run-cron") {
         return json({ ok: true, result: await runCron(env, deps()) });

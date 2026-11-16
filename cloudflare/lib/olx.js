@@ -10,7 +10,7 @@
 //  - /api/v1/geo-encoder/cities/<id>/districts/          -> districts
 
 export const OLX = "https://www.olx.pl";
-const HEADERS = {
+export const OLX_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
   "Accept-Language": "pl-PL,pl;q=0.9",
   Accept: "application/json",
@@ -19,7 +19,7 @@ const HEADERS = {
 export async function olxJson(path, fetchImpl = fetch) {
   let r;
   try {
-    r = await fetchImpl(OLX + path, { headers: HEADERS });
+    r = await fetchImpl(OLX + path, { headers: OLX_HEADERS });
   } catch (e) {
     return { ok: false, status: 0, error: String(e) };
   }

@@ -36,3 +36,19 @@ test("health, auth and webhook wiring", async () => {
     globalThis.fetch = orig;
   }
 });
+
+test("olx-get: admin only, fixed host, path checked", async () => {
+  const net = fakeNet();
+  const orig = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = async (u, i) => { seen.push(String(u)); return net.fetchImpl(u, i); };
+  try {
+    const e = env(); const c = ctx();
+    assert.equal((await worker.fetch(new Request("https://w/admin/olx-get?path=/api/v1/offers/"), e, c)).status, 401);
+    const bad = await worker.fetch(new Request("https://w/admin/olx-get?path=//evil.com/x", { headers: { "X-Secret": "s3" } }), e, c);
+    assert.equal(bad.status, 400);
+    const ok = await (await worker.fetch(new Request("https://w/admin/olx-get?path=/api/v1/offers/?limit=1", { headers: { "X-Secret": "s3" } }), e, c)).json();
+    assert.equal(ok.status, 200);
+    assert.ok(seen.every((u) => u.startsWith("https://www.olx.pl/")));
+  } finally { globalThis.fetch = orig; }
+});

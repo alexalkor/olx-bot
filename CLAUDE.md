@@ -58,7 +58,8 @@ Telegram <--webhook--> Cloudflare Worker olx-free-stuff-worker --GET--> www.olx.
 ## Current status (2026-11-15)
 
 - v3 is live since 2026-11-16 (PR #4) and Alex has tested it in Telegram.
-  v3.1 added `/admin/olx-get` (PR #5). `/health` shows the live version.
+  v3.1 added `/admin/olx-get` (PR #5); v3.2 made the category menu follow
+  OLX's live tree (PR #6). `/health` shows the live version.
 - The freshness watchdog is still enabled. Alex wants it disabled only after
   he's confirmed the hourly subscriptions work.
 
@@ -71,8 +72,9 @@ Telegram <--webhook--> Cloudflare Worker olx-free-stuff-worker --GET--> www.olx.
   (`request_credential`) — never typed into a scheduled task's prompt text
   either, which is just as real a leak surface as a committed file, even
   though it's not literally in the public repo.
-- **Always confirm with Alex before**: redeploying over the live Worker,
-  changing the Telegram webhook, enabling/disabling/changing the scraper's
+- **Always confirm with Alex before** (unless he already asked for/agreed to
+  that exact change — see the merge rule at the end): redeploying over the
+  live Worker, changing the Telegram webhook, enabling/disabling/changing the scraper's
   scheduled task, rotating secrets, or deleting/archiving anything on
   GitHub. These affect a live, user-facing system.
 - **Safe without asking**: documentation updates, local git commits on a
@@ -88,9 +90,13 @@ Telegram <--webhook--> Cloudflare Worker olx-free-stuff-worker --GET--> www.olx.
 
 ## Git: merge automatically (Alex's rule for all repos)
 When a change is finished and its checks pass, push it and merge it into
-`main` without asking, then tell Alex what was merged. Ask first only when the
-change would affect something live right away: deploying, changing passwords,
-tokens or secrets, deleting data, or changing scheduled tasks.
-In this repo a push to `main` deploys the live Worker automatically
-(Cloudflare Workers Builds), so a change to the Worker code in `cloudflare/`
-counts as deploying: ask first. Documentation and data changes merge freely.
+`main` without asking, then tell Alex what was merged — **including changes
+that deploy (e.g. Worker code in `cloudflare/`), as long as Alex has already
+asked for or agreed to that change in the conversation** (rule confirmed by
+Alex 2026-11-16: "pull, push, merge auto if all is confirmed before").
+Don't ask a second time for the deploy itself.
+Still ask first for things Alex hasn't agreed to yet, and always for:
+changing passwords, tokens or secrets, deleting data, or changing scheduled
+tasks. In this repo a push to `main` deploys the live Worker automatically
+(Cloudflare Workers Builds); after merging, check `/health` shows the new
+version.

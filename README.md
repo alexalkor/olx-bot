@@ -10,7 +10,7 @@ The category menu is OLX's own live category tree, to any depth
 (Elektronika › Komputery › Laptopy › Lenovo), with listing counts.
 A ready-made **"Free stuff — Warsaw"** search keeps the bot's original purpose.
 
-Bot: `@olxfreestuffbot` (display name can be changed in BotFather).
+Bot: `@olxsmartbot` (was `@olxfreestuffbot` until Nov 2026; display name can be changed in BotFather).
 Menus in English, Polish, Russian, Belarusian, Ukrainian and German; listings
 are shown as posted on OLX (Polish).
 

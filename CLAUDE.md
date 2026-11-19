@@ -5,7 +5,7 @@ plain language on purpose — the owner (Alex) is not a developer.
 
 ## What this project is
 
-A Telegram bot (`@olxfreestuffbot`) that is "OLX search inside Telegram":
+A Telegram bot (`@olxsmartbot`) that is "OLX search inside Telegram":
 each person saves searches (category, keywords, location, price / free only,
 "real items only" junk filter, excluded words), refreshes them with one tap,
 and can subscribe (hourly / every 3h / daily 9:00) to get new listings sent

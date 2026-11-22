@@ -4,6 +4,9 @@
 //   l:<code>                        language picked
 //   s:<searchId>:<action>[:<arg>]   actions on one saved search
 import { t, LANG_NAMES } from "./i18n.js";
+import { filterName, filterValueText, filtersSummary } from "./filters.js";
+
+export const VALUES_PAGE = 20;
 
 export function escapeHtml(s) {
   return String(s ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -43,6 +46,7 @@ export function searchSummary(s, lang) {
     `🔎 <b>${escapeHtml(searchTitle(s, lang))}</b>`,
     "",
     `📂 ${escapeHtml(categoryLabel(s, lang))}`,
+    ...filtersSummary(s, lang).map((x) => `   ${escapeHtml(x)}`),
     `🔤 ${s.query ? escapeHtml(s.query) : t(lang, "l_no_kw")}`,
     `📍 ${escapeHtml(locationLabel(s))}`,
     `💰 ${escapeHtml(priceLabel(s, lang))}`,
@@ -58,16 +62,27 @@ export function searchSummary(s, lang) {
 
 export function searchKeyboard(s, lang) {
   const p = `s:${s.id}:`;
-  const onoff = (v) => (v ? "✅" : "⬜");
   return {
     inline_keyboard: [
       [btn(t(lang, "b_show"), p + "show")],
       [btn(t(lang, "b_cat"), p + "cat"), btn(t(lang, "b_kw"), p + "kw")],
       [btn(t(lang, "b_loc"), p + "loc"), btn(t(lang, "b_price"), p + "price")],
-      [btn(`${onoff(s.freeOnly)} ${t(lang, "b_free")}`, p + "free"), btn(`${onoff(s.realItemsOnly)} ${t(lang, "b_real")}`, p + "real")],
-      [btn(t(lang, "b_excl"), p + "excl"), btn(`${t(lang, "b_deliv")}: ${deliveryLabel(s.delivery, lang)}`, p + "deliv")],
-      [btn(t(lang, "b_rename"), p + "ren"), btn(t(lang, "b_delete"), p + "del")],
+      [btn(`${t(lang, "b_deliv")}: ${deliveryLabel(s.delivery, lang)}`, p + "deliv"), btn(t(lang, "b_xtra"), p + "xtra")],
       [btn(t(lang, "b_back"), "m:list")],
+    ],
+  };
+}
+
+// "⋯ More": the rarely used settings.
+export function extraKeyboard(s, lang) {
+  const p = `s:${s.id}:`;
+  const onoff = (v) => (v ? "✅" : "⬜");
+  return {
+    inline_keyboard: [
+      [btn(`${onoff(s.freeOnly)} ${t(lang, "b_free")}`, p + "free"), btn(`${onoff(s.realItemsOnly)} ${t(lang, "b_real")}`, p + "real")],
+      [btn(t(lang, "b_excl"), p + "excl")],
+      [btn(t(lang, "b_rename"), p + "ren"), btn(t(lang, "b_delete"), p + "del")],
+      [btn(t(lang, "b_back"), p + "open")],
     ],
   };
 }
@@ -129,6 +144,46 @@ export function categoryKeyboard(s, level, lang) {
   if (level.id) rows.unshift([btn(`✅ ${t(lang, "b_all_of", level.name)}`, `${p}cs:${level.id}`)]);
   else rows.unshift([btn(t(lang, "b_any_cat"), `${p}cs:0`)]);
   rows.push([btn(t(lang, "b_back"), level.id ? `${p}cp:${level.parentId}` : `${p}open`)]);
+  return { inline_keyboard: rows };
+}
+
+// The chosen category: go deeper (children) or switch (siblings, current ✅),
+// filters, up a level, clear. level = the level whose children are listed.
+export function currentCategoryKeyboard(s, level, nFilters, nActive, lang) {
+  const p = `s:${s.id}:`;
+  const rows = rows2(level.children.map((c) => btn(`${c.id === s.categoryId ? "✅ " : ""}${c.name}${compact(c.count)}`, `${p}cp:${c.id}`)));
+  if (nFilters) rows.push([btn(t(lang, "b_filters", nActive), `${p}flt`)]);
+  rows.push([btn(t(lang, "b_up"), `${p}up`), btn(t(lang, "b_clear_cat"), `${p}cx`)]);
+  rows.push([btn(t(lang, "b_back"), `${p}open`)]);
+  return { inline_keyboard: rows };
+}
+
+// list = categoryFilters(s.categoryId)
+export function filtersKeyboard(s, list, lang) {
+  const p = `s:${s.id}:`;
+  const set = s.filters || {};
+  const rows = list.map((f, i) => {
+    if (f.kind === "bool") return [btn(`${set[f.key] === true ? "✅" : "⬜"} ${filterName(f, lang)}`, `${p}fb:${i}`)];
+    const v = filterValueText(f, set[f.key], lang);
+    return [btn(`${filterName(f, lang)}: ${v || t(lang, "l_any")}`.slice(0, 64), `${p}fk:${i}`)];
+  });
+  if (Object.keys(set).length) rows.push([btn(t(lang, "b_clear_filters"), `${p}fc`)]);
+  rows.push([btn(t(lang, "b_back"), `${p}cat`)]);
+  return { inline_keyboard: rows };
+}
+
+// Tick list for one enum filter, VALUES_PAGE per page.
+export function filterValuesKeyboard(s, i, f, page, lang) {
+  const p = `s:${s.id}:`;
+  const sel = new Set((s.filters || {})[f.key] || []);
+  const start = page * VALUES_PAGE;
+  const rows = rows2(f.values.slice(start, start + VALUES_PAGE).map(([v, label], j) =>
+    btn(`${sel.has(v) ? "✅ " : ""}${filterValueText(f, [v], lang) || label}`, `${p}fv:${i}.${start + j}`)));
+  const nav = [];
+  if (page > 0) nav.push(btn("◀️", `${p}fk:${i}:${page - 1}`));
+  if (start + VALUES_PAGE < f.values.length) nav.push(btn("▶️", `${p}fk:${i}:${page + 1}`));
+  if (nav.length) rows.push(nav);
+  rows.push([btn(`${sel.size ? "" : "✅ "}${t(lang, "b_any")}`, `${p}fa:${i}`), btn(t(lang, "b_back"), `${p}flt`)]);
   return { inline_keyboard: rows };
 }
 

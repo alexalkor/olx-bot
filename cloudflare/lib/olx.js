@@ -9,6 +9,9 @@
 //    "category_without_exclusions","fetchLabel":true,"fetchUrl":true,"limit":199}]
 //    -> X itself, its ancestors and descendants: {id,label,url,count}; url depth
 //    gives the level (limit must be < 200). This is OLX's live category tree.
+//  - /api/v1/offers/metadata/filters/ -> every filter of every category (1.5 MB);
+//    snapshot in filters-data.js. Params (checked 2026-11-22): enum key[i]=value,
+//    float key:from / key:to, bool key=1, owner_type=private|business.
 //  - /api/v1/geo-encoder/location-autocomplete/?query=  -> cities
 //  - /api/v1/geo-encoder/cities/<id>/districts/          -> districts
 

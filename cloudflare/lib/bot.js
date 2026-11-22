@@ -2,9 +2,11 @@
 import { t, LANG_NAMES } from "./i18n.js";
 import * as st from "./store.js";
 import * as f from "./format.js";
+import * as fl from "./filters.js";
 import { fetchOffers, lookupCity } from "./olx.js";
 import { selectNew, FREE_STUFF_EXCLUDES } from "./filter.js";
 import { getCategoryLevel, getDistricts, FREE_CATEGORY_ID } from "./catalog.js";
+import { categoryFilters, pruneFilters, filterName, activeCount } from "./filters.js";
 
 export const PAGE = 5;
 export const SHOW_MAX = 20;
@@ -88,6 +90,26 @@ async function showLocation(env, chatId, search, lang, deps, msgId) {
   return render(env, chatId, msgId, t(lang, "pick_dist", loc.label || "Polska"), f.locationKeyboard(search, districts, lang), deps);
 }
 
+// The chosen category: its children (go deeper) or, for a leaf, its siblings.
+async function showCategory(env, chatId, s, lang, deps, msgId) {
+  const kv = env.OFFERS_KV;
+  if (!s.categoryId) return handleSearchAction(env, chatId, msgId, s.id, "cp", "0", lang, deps);
+  const level = await getCategoryLevel(kv, s.categoryId, deps.fetchImpl);
+  if (!level) return send(env, chatId, t(lang, "olx_down"), deps);
+  const list = level.children.length ? level : (await getCategoryLevel(kv, level.parentId, deps.fetchImpl)) || { ...level, children: [] };
+  const lines = [`📂 <b>${f.escapeHtml(level.path || s.categoryName)}</b>`];
+  for (const x of fl.filtersSummary(s, lang)) lines.push(`   ${f.escapeHtml(x)}`);
+  lines.push("", t(lang, "cat_hint"));
+  const kb = f.currentCategoryKeyboard(s, list, categoryFilters(s.categoryId).length, activeCount(s), lang);
+  return render(env, chatId, msgId, lines.join("\n"), kb, deps);
+}
+
+async function showFilters(env, chatId, s, lang, deps, msgId) {
+  const list = categoryFilters(s.categoryId);
+  const head = `⚙️ <b>${f.escapeHtml(s.categoryName || "")}</b>\n\n`;
+  return render(env, chatId, msgId, head + t(lang, list.length ? "pick_filter" : "no_filters"), f.filtersKeyboard(s, list, lang), deps);
+}
+
 async function createSearch(env, chatId, lang, deps, partial, msgId) {
   const kv = env.OFFERS_KV;
   if ((await st.getSearches(kv, chatId)).length >= st.MAX_SEARCHES) {
@@ -149,6 +171,19 @@ async function handleInput(env, chatId, draft, text, lang, deps) {
     const p = parsePrice(text);
     if (!p) return send(env, chatId, t(lang, "bad_price"), deps, { reply_markup: f.cancelKeyboard(search.id, lang) });
     patch = { priceFrom: p.from, priceTo: p.to, freeOnly: false };
+  } else if (draft.awaiting === "rng") {
+    const flt = categoryFilters(search.categoryId)[draft.fi];
+    if (!flt) { await st.clearDraft(kv, chatId); return showSearch(env, chatId, search, lang, deps); }
+    const p = parsePrice(text);
+    if (!p) return send(env, chatId, t(lang, "bad_range"), deps, { reply_markup: f.cancelKeyboard(search.id, lang) });
+    const updated = await st.updateSearch(kv, chatId, search.id, (s) => {
+      const filters = { ...(s.filters || {}) };
+      if (p.from == null && p.to == null) delete filters[flt.key];
+      else filters[flt.key] = p;
+      return { ...s, filters };
+    });
+    await st.clearDraft(kv, chatId);
+    return showFilters(env, chatId, updated, lang, deps);
   } else if (draft.awaiting === "city") {
     const c = await lookupCity(text.trim().slice(0, 60), deps.fetchImpl);
     if (!c) return send(env, chatId, t(lang, "city_nf"), deps, { reply_markup: f.cancelKeyboard(search.id, lang) });
@@ -183,7 +218,7 @@ async function handleSearchAction(env, chatId, msgId, searchId, action, arg, lan
     case "more":
       return runShowNow(env, chatId, s, Math.max(0, Number(arg) || 0), lang, deps);
     case "cat":
-      return handleSearchAction(env, chatId, msgId, searchId, "cp", String(s.categoryId || 0), lang, deps);
+      return showCategory(env, chatId, s, lang, deps, msgId);
     case "cp": {
       const level = await getCategoryLevel(kv, Number(arg) || 0, deps.fetchImpl);
       if (!level) {
@@ -204,9 +239,53 @@ async function handleSearchAction(env, chatId, msgId, searchId, action, arg, lan
         const level = await getCategoryLevel(kv, id, deps.fetchImpl);
         name = (level && level.path) || "";
       }
-      await upd((x) => ({ ...x, categoryId: id, categoryName: name }));
-      return showSearch(env, chatId, s, lang, deps, msgId);
+      await upd((x) => ({ ...x, categoryId: id, categoryName: name, filters: pruneFilters(x.filters, id) }));
+      return id ? showCategory(env, chatId, s, lang, deps, msgId) : showSearch(env, chatId, s, lang, deps, msgId);
     }
+    case "cx":
+      await upd((x) => ({ ...x, categoryId: null, categoryName: "", filters: {} }));
+      return handleSearchAction(env, chatId, msgId, searchId, "cp", "0", lang, deps);
+    case "up": {
+      const level = s.categoryId ? await getCategoryLevel(kv, s.categoryId, deps.fetchImpl) : null;
+      if (!level || !level.parentId) return handleSearchAction(env, chatId, msgId, searchId, "cx", "", lang, deps);
+      return handleSearchAction(env, chatId, msgId, searchId, "cs", String(level.parentId), lang, deps);
+    }
+    case "flt":
+      return showFilters(env, chatId, s, lang, deps, msgId);
+    case "fk": case "fv": case "fa": case "fb": {
+      const [i, page] = String(arg || "").split(/[:.]/).map(Number);
+      const flt = categoryFilters(s.categoryId)[i];
+      if (!flt) return showFilters(env, chatId, s, lang, deps, msgId);
+      const setKey = (fn) => upd((x) => {
+        const filters = { ...(x.filters || {}) };
+        const v = fn(filters[flt.key]);
+        if (v == null || (Array.isArray(v) && !v.length)) delete filters[flt.key]; else filters[flt.key] = v;
+        return { ...x, filters };
+      });
+      if (action === "fb") { await setKey((v) => (v === true ? null : true)); return showFilters(env, chatId, s, lang, deps, msgId); }
+      if (action === "fa") { await setKey(() => null); return showFilters(env, chatId, s, lang, deps, msgId); }
+      if (flt.kind === "range") {
+        await st.setDraft(kv, chatId, { searchId: s.id, awaiting: "rng", fi: i });
+        return send(env, chatId, t(lang, "ask_range", f.escapeHtml(filterName(flt, lang)), flt.unit || ""), deps, { reply_markup: f.cancelKeyboard(s.id, lang) });
+      }
+      let pg = Number.isInteger(page) && page >= 0 ? page : 0;
+      if (action === "fv") {
+        const val = (flt.values[page] || [])[0];
+        if (val != null) await setKey((cur) => {
+          const set = new Set(Array.isArray(cur) ? cur : []);
+          if (set.has(val)) set.delete(val); else set.add(val);
+          return [...set];
+        });
+        pg = Math.floor((page || 0) / f.VALUES_PAGE);
+      }
+      const text = `<b>${f.escapeHtml(filterName(flt, lang))}</b>\n${t(lang, "pick_values")}`;
+      return render(env, chatId, msgId, text, f.filterValuesKeyboard(s, i, flt, pg, lang), deps);
+    }
+    case "fc":
+      await upd((x) => ({ ...x, filters: {} }));
+      return showFilters(env, chatId, s, lang, deps, msgId);
+    case "xtra":
+      return render(env, chatId, msgId, `${f.searchSummary(s, lang)}\n\n${t(lang, "xtra_title")}`, f.extraKeyboard(s, lang), deps);
     case "loc":
       return showLocation(env, chatId, s, lang, deps, msgId);
     case "di": {
@@ -232,10 +311,10 @@ async function handleSearchAction(env, chatId, msgId, searchId, action, arg, lan
       return showLocation(env, chatId, s, lang, deps, msgId);
     case "free":
       await upd((x) => ({ ...x, freeOnly: !x.freeOnly }));
-      return showSearch(env, chatId, s, lang, deps, msgId);
+      return handleSearchAction(env, chatId, msgId, searchId, "xtra", "", lang, deps);
     case "real":
       await upd((x) => ({ ...x, realItemsOnly: !x.realItemsOnly }));
-      return showSearch(env, chatId, s, lang, deps, msgId);
+      return handleSearchAction(env, chatId, msgId, searchId, "xtra", "", lang, deps);
     case "deliv":
       return render(env, chatId, msgId, `${f.searchSummary(s, lang)}\n\n${t(lang, "pick_deliv")}`, f.deliveryKeyboard(s, lang), deps);
     case "dv": {

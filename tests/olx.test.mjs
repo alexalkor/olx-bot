@@ -53,3 +53,12 @@ test("fetchOffers ok / 403 / non-JSON", async () => {
   const thrown = await fetchOffers({}, { fetchImpl: async () => { throw new Error("net"); } });
   assert.equal(thrown.ok, false);
 });
+
+test("buildOffersUrl adds category filters; no filters = no extra params", () => {
+  const q = new URL("https://x" + buildOffersUrl({ categoryId: 15, location: {}, filters: { filter_enum_rooms: ["two", "three"], filter_float_m: { from: 40, to: null } } })).searchParams;
+  assert.equal(q.get("filter_enum_rooms[0]"), "two");
+  assert.equal(q.get("filter_enum_rooms[1]"), "three");
+  assert.equal(q.get("filter_float_m:from"), "40");
+  const plain = buildOffersUrl({ categoryId: 15, location: {} });
+  assert.ok(!plain.includes("filter_"));
+});

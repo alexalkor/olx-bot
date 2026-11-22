@@ -12,6 +12,8 @@
 //  - /api/v1/geo-encoder/location-autocomplete/?query=  -> cities
 //  - /api/v1/geo-encoder/cities/<id>/districts/          -> districts
 
+import { filterParams } from "./filters.js";
+
 export const OLX = "https://www.olx.pl";
 export const OLX_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
@@ -55,6 +57,7 @@ export function buildOffersUrl(search, { offset = 0, limit = 50 } = {}) {
     if (search.priceFrom != null) p.set("filter_float_price:from", String(search.priceFrom));
     if (search.priceTo != null) p.set("filter_float_price:to", String(search.priceTo));
   }
+  for (const [k, v] of filterParams(search.filters)) p.set(k, v);
   return `/api/v1/offers/?${p.toString()}`;
 }
 

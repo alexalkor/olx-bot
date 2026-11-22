@@ -30,6 +30,7 @@ export function newSearch(partial = {}, now = new Date()) {
     freeOnly: false,
     realItemsOnly: true,
     excludeWords: [],
+    filters: {},
     delivery: "off",
     lastRunAt: null,
     createdAt: now.toISOString(),

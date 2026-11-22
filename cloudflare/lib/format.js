@@ -4,7 +4,7 @@
 //   l:<code>                        language picked
 //   s:<searchId>:<action>[:<arg>]   actions on one saved search
 import { t, LANG_NAMES } from "./i18n.js";
-import { filterName, filterValueText, filtersSummary } from "./filters.js";
+import { filterName, filterValueText, filtersSummary, activeCount } from "./filters.js";
 
 export const VALUES_PAGE = 20;
 
@@ -66,7 +66,7 @@ export function searchKeyboard(s, lang) {
     inline_keyboard: [
       [btn(t(lang, "b_show"), p + "show")],
       [btn(t(lang, "b_cat"), p + "cat"), btn(t(lang, "b_kw"), p + "kw")],
-      [btn(t(lang, "b_loc"), p + "loc"), btn(t(lang, "b_price"), p + "price")],
+      [btn(t(lang, "b_filters", activeCount(s)), p + "flt"), btn(t(lang, "b_price"), p + "price")],
       [btn(`${t(lang, "b_deliv")}: ${deliveryLabel(s.delivery, lang)}`, p + "deliv"), btn(t(lang, "b_xtra"), p + "xtra")],
       [btn(t(lang, "b_back"), "m:list")],
     ],
@@ -149,10 +149,9 @@ export function categoryKeyboard(s, level, lang) {
 
 // The chosen category: go deeper (children) or switch (siblings, current ✅),
 // filters, up a level, clear. level = the level whose children are listed.
-export function currentCategoryKeyboard(s, level, nFilters, nActive, lang) {
+export function currentCategoryKeyboard(s, level, lang) {
   const p = `s:${s.id}:`;
   const rows = rows2(level.children.map((c) => btn(`${c.id === s.categoryId ? "✅ " : ""}${c.name}${compact(c.count)}`, `${p}cp:${c.id}`)));
-  if (nFilters) rows.push([btn(t(lang, "b_filters", nActive), `${p}flt`)]);
   rows.push([btn(t(lang, "b_up"), `${p}up`), btn(t(lang, "b_clear_cat"), `${p}cx`)]);
   rows.push([btn(t(lang, "b_back"), `${p}open`)]);
   return { inline_keyboard: rows };
@@ -168,9 +167,9 @@ export function filtersKeyboard(s, list, lang) {
     return [btn(`${filterName(f, lang)}: ${v || t(lang, "l_any")}`.slice(0, 64), `${p}fk:${i}`)];
   });
   // 📍 right after the main filter (rooms, model, condition...)
-  rows.splice(Math.min(1, list.length), 0, [btn(`${t(lang, "b_loc")}: ${locationLabel(s)}`.slice(0, 64), `${p}locf`)]);
+  rows.splice(Math.min(1, list.length), 0, [btn(`${t(lang, "b_loc")}: ${locationLabel(s)}`.slice(0, 64), `${p}loc`)]);
   if (Object.keys(set).length) rows.push([btn(t(lang, "b_clear_filters"), `${p}fc`)]);
-  rows.push([btn(t(lang, "b_back"), `${p}cat`)]);
+  rows.push([btn(t(lang, "b_back"), `${p}open`)]);
   return { inline_keyboard: rows };
 }
 
@@ -198,7 +197,7 @@ export function locationKeyboard(s, districts, lang) {
   if (loc.cityId) rows.unshift([btn(`${!chosen.size ? "✅ " : ""}${t(lang, "b_all_districts", loc.label)}`, `${p}da`)]);
   rows.push([btn(t(lang, "b_other_city"), `${p}city`), btn(`${!loc.cityId && !loc.regionId ? "✅ " : ""}${t(lang, "b_poland")}`, `${p}pl`)]);
   if (loc.cityId !== 17871) rows.push([btn("📍 Warszawa", `${p}waw`)]);
-  rows.push([btn(t(lang, "b_back"), `${p}${s.locBack === "flt" ? "flt" : "open"}`)]);
+  rows.push([btn(t(lang, "b_back"), `${p}flt`)]);
   return { inline_keyboard: rows };
 }
 

@@ -6,7 +6,7 @@ import * as fl from "./filters.js";
 import { fetchOffers, lookupCity } from "./olx.js";
 import { selectNew, FREE_STUFF_EXCLUDES } from "./filter.js";
 import { getCategoryLevel, getDistricts, FREE_CATEGORY_ID } from "./catalog.js";
-import { categoryFilters, pruneFilters, filterName, activeCount } from "./filters.js";
+import { categoryFilters, pruneFilters, filterName } from "./filters.js";
 
 export const PAGE = 5;
 export const SHOW_MAX = 20;
@@ -100,14 +100,15 @@ async function showCategory(env, chatId, s, lang, deps, msgId) {
   const lines = [`📂 <b>${f.escapeHtml(level.path || s.categoryName)}</b>`];
   for (const x of fl.filtersSummary(s, lang)) lines.push(`   ${f.escapeHtml(x)}`);
   lines.push("", t(lang, "cat_hint"));
-  const kb = f.currentCategoryKeyboard(s, list, categoryFilters(s.categoryId).length, activeCount(s), lang);
+  const kb = f.currentCategoryKeyboard(s, list, lang);
   return render(env, chatId, msgId, lines.join("\n"), kb, deps);
 }
 
 async function showFilters(env, chatId, s, lang, deps, msgId) {
   const list = categoryFilters(s.categoryId);
-  const head = `⚙️ <b>${f.escapeHtml(s.categoryName || "")}</b>\n\n`;
-  return render(env, chatId, msgId, head + t(lang, list.length ? "pick_filter" : "no_filters"), f.filtersKeyboard(s, list, lang), deps);
+  const head = `⚙️ <b>${f.escapeHtml(s.categoryName || t(lang, "l_any_cat"))}</b>\n\n`;
+  const hint = list.length ? "pick_filter" : s.categoryId ? "no_filters" : "need_cat";
+  return render(env, chatId, msgId, head + t(lang, hint), f.filtersKeyboard(s, list, lang), deps);
 }
 
 async function createSearch(env, chatId, lang, deps, partial, msgId) {
@@ -286,12 +287,8 @@ async function handleSearchAction(env, chatId, msgId, searchId, action, arg, lan
       return showFilters(env, chatId, s, lang, deps, msgId);
     case "xtra":
       return render(env, chatId, msgId, `${f.searchSummary(s, lang)}\n\n${t(lang, "xtra_title")}`, f.extraKeyboard(s, lang), deps);
-    case "loc": case "locf": {
-      // Remember where "Back" on the location screen should go.
-      const back = action === "locf" ? "flt" : "open";
-      if (s.locBack !== back) await upd((x) => ({ ...x, locBack: back }));
+    case "loc":
       return showLocation(env, chatId, s, lang, deps, msgId);
-    }
     case "di": {
       const id = Number(arg);
       const districts = await getDistricts(kv, s.location.cityId, deps.fetchImpl);

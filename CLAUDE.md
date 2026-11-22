@@ -62,7 +62,8 @@ Telegram <--webhook--> Cloudflare Worker olx-free-stuff-worker --GET--> www.olx.
   OLX's live tree (PR #6). v3.3 (2026-11-23) added per-category filters
   (rooms, m², model, fuel, condition…) from a bundled snapshot of OLX's filter
   catalog — refresh with `scripts/update-filters.mjs` (instructions inside) —
-  and slimmed the search screen to 8 buttons (rare ones under "⋯ More").
+  and slimmed the search screen to 8 buttons: Category, Keywords, ⚙️ Filters
+  (holds 📍 Location + category filters), Price, alerts, "⋯ More" (rare ones).
   `/health` shows the live version.
 - The freshness watchdog is still enabled. Alex wants it disabled only after
   he's confirmed the hourly subscriptions work.

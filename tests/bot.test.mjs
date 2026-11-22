@@ -181,7 +181,13 @@ test("search screen has 8 buttons; More holds free/real/excluded/rename/delete",
   const { run, net, kv } = setup();
   await run(msg("/new"));
   const [s] = await st.getSearches(kv, 42);
-  assert.equal(kbOf(net).length, 8);
+  const main = kbOf(net).map((b) => b.callback_data);
+  assert.equal(main.length, 8);
+  assert.ok(main.includes(`s:${s.id}:flt`) && !main.includes(`s:${s.id}:loc`));
+  assert.equal((await st.getSearch(kv, 42, s.id)).location.label, "Warszawa"); // default
+  await run(cb(`s:${s.id}:flt`)); // no category yet: location + hint
+  assert.match(net.tg.at(-1).body.text, /Pick a category/);
+  assert.ok(kbOf(net).some((b) => b.callback_data === `s:${s.id}:loc`));
   await run(cb(`s:${s.id}:xtra`));
   const data = kbOf(net).map((b) => b.callback_data);
   for (const a of ["free", "real", "excl", "ren", "del", "open"]) assert.ok(data.includes(`s:${s.id}:${a}`), a);
@@ -198,7 +204,8 @@ test("category tap on a leaf shows siblings + filters/up/clear, not the same scr
   await run(cb(`s:${s.id}:cat`));
   const kb = kbOf(net);
   assert.ok(kb.some((b) => b.text.startsWith("✅ Lenovo")));
-  for (const a of ["flt", "up", "cx"]) assert.ok(kb.some((b) => b.callback_data === `s:${s.id}:${a}`), a);
+  assert.ok(!kb.some((b) => b.callback_data === `s:${s.id}:flt`)); // filters are their own button now
+  for (const a of ["up", "cx"]) assert.ok(kb.some((b) => b.callback_data === `s:${s.id}:${a}`), a);
   assert.match(net.tg.at(-1).body.text, /Laptopy › Lenovo/);
   await run(cb(`s:${s.id}:up`));
   assert.equal((await st.getSearch(kv, 42, s.id)).categoryId, 1199);
@@ -275,8 +282,6 @@ test("filters screen: rooms, then location, then parking; location Back returns 
   assert.match(texts3[0], /Rooms/);
   assert.match(texts3[1], /Location: Warszawa/);
   assert.match(texts3[2], /Parking/);
-  await run(cb(`s:${s.id}:locf`));
-  assert.equal(kbOf(net).at(-1).callback_data, `s:${s.id}:flt`);
   await run(cb(`s:${s.id}:loc`));
-  assert.equal(kbOf(net).at(-1).callback_data, `s:${s.id}:open`);
+  assert.equal(kbOf(net).at(-1).callback_data, `s:${s.id}:flt`);
 });

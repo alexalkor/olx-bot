@@ -286,8 +286,12 @@ async function handleSearchAction(env, chatId, msgId, searchId, action, arg, lan
       return showFilters(env, chatId, s, lang, deps, msgId);
     case "xtra":
       return render(env, chatId, msgId, `${f.searchSummary(s, lang)}\n\n${t(lang, "xtra_title")}`, f.extraKeyboard(s, lang), deps);
-    case "loc":
+    case "loc": case "locf": {
+      // Remember where "Back" on the location screen should go.
+      const back = action === "locf" ? "flt" : "open";
+      if (s.locBack !== back) await upd((x) => ({ ...x, locBack: back }));
       return showLocation(env, chatId, s, lang, deps, msgId);
+    }
     case "di": {
       const id = Number(arg);
       const districts = await getDistricts(kv, s.location.cityId, deps.fetchImpl);

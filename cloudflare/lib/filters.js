@@ -9,7 +9,21 @@ import { NAMES, VALUES, LANGS } from "./filters-i18n.js";
 
 const memo = new Map();
 
-// -> [{ key, kind: "enum"|"range"|"bool", label, unit, values: [[value, label]] }] in OLX's order
+// Main filters first (what people set to start a search), then OLX's own order.
+// ponytail: one hand-kept list; add keys here when a category's order feels wrong.
+const FIRST = [
+  // flats / houses
+  "filter_enum_rooms", "filter_enum_parking", "filter_float_m", "filter_float_price_per_m", "filter_enum_furniture",
+  "filter_enum_pets", "filter_enum_floor_select", "filter_enum_winda", "filter_enum_builttype", "filter_float_area",
+  // cars
+  "filter_enum_model", "filter_float_year", "filter_enum_petrol", "filter_enum_car_body", "filter_enum_transmission",
+  "filter_enum_drive", "filter_float_milage", "filter_float_enginesize", "filter_float_enginepower", "filter_enum_condition",
+  // things
+  "filter_enum_state", "filter_enum_phonemodel", "filter_enum_brand", "filter_enum_size",
+];
+const rank = (key) => { const i = FIRST.indexOf(key); return i < 0 ? FIRST.length : i; };
+
+// -> [{ key, kind: "enum"|"range"|"bool", label, unit, values: [[value, label]] }] main ones first
 export function categoryFilters(categoryId) {
   const id = Number(categoryId) || 0;
   if (!id) return [];
@@ -19,7 +33,7 @@ export function categoryFilters(categoryId) {
     const f = variants.find((x) => x.c.includes(id));
     if (f) list.push({ key, kind: f.k, label: f.l.trim(), unit: f.u ? f.u.trim() : null, values: f.v || [], order: f.o });
   }
-  list.sort((a, b) => a.order - b.order);
+  list.sort((a, b) => rank(a.key) - rank(b.key) || a.order - b.order);
   memo.set(id, list);
   return list;
 }

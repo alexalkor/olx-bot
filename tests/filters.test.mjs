@@ -58,3 +58,9 @@ test("value text and summary", () => {
   assert.ok(lines.includes("🛏 Rooms: 2 rooms, 3 rooms"), lines.join("|"));
   assert.ok(lines.includes("📐 Area: ≥ 40 m²"), lines.join("|"));
 });
+
+test("main filters come first", () => {
+  assert.deepEqual(keys(15).slice(0, 3), ["filter_enum_rooms", "filter_enum_parking", "filter_float_m"]);
+  assert.deepEqual(keys(183).slice(0, 3), ["filter_enum_model", "filter_float_year", "filter_enum_petrol"]);
+  assert.equal(keys(1199)[0], "filter_enum_state");
+});

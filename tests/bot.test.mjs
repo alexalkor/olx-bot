@@ -264,3 +264,19 @@ test("long value lists page by 20 and callback data fits 64 bytes", async () => 
   await run(cb(`s:${s.id}:flt`));
   for (const b of kbOf(net)) assert.ok(Buffer.byteLength(b.callback_data) <= 64, b.callback_data);
 });
+
+test("filters screen: rooms, then location, then parking; location Back returns to filters", async () => {
+  const { run, net, kv } = setup();
+  await run(msg("/new"));
+  const [s] = await st.getSearches(kv, 42);
+  await st.updateSearch(kv, 42, s.id, (x) => ({ ...x, categoryId: 15, categoryName: "Wynajem" }));
+  await run(cb(`s:${s.id}:flt`));
+  const texts3 = kbOf(net).slice(0, 3).map((b) => b.text);
+  assert.match(texts3[0], /Rooms/);
+  assert.match(texts3[1], /Location: Warszawa/);
+  assert.match(texts3[2], /Parking/);
+  await run(cb(`s:${s.id}:locf`));
+  assert.equal(kbOf(net).at(-1).callback_data, `s:${s.id}:flt`);
+  await run(cb(`s:${s.id}:loc`));
+  assert.equal(kbOf(net).at(-1).callback_data, `s:${s.id}:open`);
+});

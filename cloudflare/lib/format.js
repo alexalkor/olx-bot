@@ -167,6 +167,8 @@ export function filtersKeyboard(s, list, lang) {
     const v = filterValueText(f, set[f.key], lang);
     return [btn(`${filterName(f, lang)}: ${v || t(lang, "l_any")}`.slice(0, 64), `${p}fk:${i}`)];
   });
+  // 📍 right after the main filter (rooms, model, condition...)
+  rows.splice(Math.min(1, list.length), 0, [btn(`${t(lang, "b_loc")}: ${locationLabel(s)}`.slice(0, 64), `${p}locf`)]);
   if (Object.keys(set).length) rows.push([btn(t(lang, "b_clear_filters"), `${p}fc`)]);
   rows.push([btn(t(lang, "b_back"), `${p}cat`)]);
   return { inline_keyboard: rows };
@@ -196,7 +198,7 @@ export function locationKeyboard(s, districts, lang) {
   if (loc.cityId) rows.unshift([btn(`${!chosen.size ? "✅ " : ""}${t(lang, "b_all_districts", loc.label)}`, `${p}da`)]);
   rows.push([btn(t(lang, "b_other_city"), `${p}city`), btn(`${!loc.cityId && !loc.regionId ? "✅ " : ""}${t(lang, "b_poland")}`, `${p}pl`)]);
   if (loc.cityId !== 17871) rows.push([btn("📍 Warszawa", `${p}waw`)]);
-  rows.push([btn(t(lang, "b_back"), `${p}open`)]);
+  rows.push([btn(t(lang, "b_back"), `${p}${s.locBack === "flt" ? "flt" : "open"}`)]);
   return { inline_keyboard: rows };
 }
 
